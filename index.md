@@ -4,9 +4,9 @@ layout: default
 
 # Hi, I'm Alex
 
-I'm interested in machine learning and mechanistic interpretability — understanding *what* models learn and *why* they learn it. I like building small, fully interpretable systems where every parameter can be examined, and using controlled experiments to separate real understanding from pattern matching.
+I'm a Quant Trader for almost 3 years now. I've always had an interest in machine learning and generally understanding why things happen and how we can model them. I've been fortunate that this skillset has been highly relevant at my work, but I am still looking to expand my horizons across the modern advent of advanced, highly data driven models that I believe have the potential to change the world, for better or for worse.
 
-Currently exploring how transformer models represent structured game knowledge, and whether tiny models develop compositional reasoning or rely on statistical shortcuts.
+Always disliked the term black-box and always a big believer of Laplace's demon.
 
 [GitHub](https://github.com/alexayvazyan)
 
@@ -14,4 +14,4 @@ Currently exploring how transformer models represent structured game knowledge, 
 
 ## Writing
 
-- [Mechanistic Interpretability of a 2,424-Parameter TFT Transformer](/2026/02/19/tft-mechanistic-interpretability.html) — Dissecting what a tiny placement-prediction model actually learns about Teamfight Tactics.
+- [Can we see features in a TFT placement prediction transformer?](/2026/02/19/tft-mechanistic-interpretability.html) — Into project to just play around with some rough ideas of mech interp in a domain where I have a good intuition.
