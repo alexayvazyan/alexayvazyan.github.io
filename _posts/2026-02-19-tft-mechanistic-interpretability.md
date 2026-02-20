@@ -76,9 +76,14 @@ Intuitively, this should obviously be a large feature. Where does our model lear
 
 I guess before even asking these questions, we should ask, *does* the actually model learn it? When we look at test samples and group them by the number of champion tokens, does our model do a good job in aggregate in predicting these buckets?
 
+![Mean pooling fit](/assets/images/pooling_mean_only.png)
+
+
 We see that while we do okay at predicting the central cluster, we predict poorly in the tails. This is a pretty grim result, its not hard to predict the central cluser well even if you just use the benchmark with a couple adjustments. The tails is where this feature should really be activating to make a difference.
 
-An early architectural choice actually turns out to have inhibited learning this feature. If we spot check some post pooled vectors, they actually look surprisingly similar to champions by themselves, even with attention before hand. Turns out, without positional embedding, attention isnt really capable of differentiating between number of tokens passed through to it. And after attention, we simply take the mean of all the token vectors to produce a board state vector. If we take the sum instead however, we are able to essentially add a degree of freedom, where now the size of the vector would be able to easily represent how many champions are on a board. Lets retrain.
+An early architectural choice actually turns out to have inhibited learning this feature. If we spot check some post pooled vectors, they actually look surprisingly similar to champions by themselves, even with attention before hand. Turns out, without positional embedding, attention isnt really capable of differentiating between number of tokens passed through to it. And after attention, we simply take the mean of all the token vectors to produce a board state vector. 
+
+If we take the sum instead however, we are able to essentially add a degree of freedom, where now the size of the vector would be able to easily represent how many champions are on a board. Lets retrain.
 
 ![Training curve showing train and test MAE converging around 1.48](/assets/images/training_curve.png)
 
