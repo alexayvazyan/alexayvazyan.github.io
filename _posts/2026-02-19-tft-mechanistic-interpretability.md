@@ -41,10 +41,9 @@ Given we have a totally uniform distribution of placements (each sample comes in
 
 As a first pass, lets try train and see what happens.
 
-![Training curve showing train and test MAE converging around 1.48](/assets/images/training_curve.png)
+![Training curve showing train and test MAE converging around 1.48](/assets/images/training_curve_mean_pool.png)
 
-
-MAE of X! Not bad, the model is clearly working, and performing decently better than the benchmark. Lets investigate.
+MAE of 1.55! Not bad, the model is clearly working, and performing decently better than the benchmark. Lets investigate.
 My prior intuition tells me that if I was training myself to look at this data, the first things I would take note of are:
 - Average champion strength (some champions are just stronger and have higher average placement than others)
 - Number of champions (the more champions you have on your final board (i.e. the more number of tokens passed), the more likely you made it later into the game)
@@ -79,11 +78,10 @@ I guess before even asking these questions, we should ask, *does* the actually m
 
 We see that while we do okay at predicting the central cluster, we predict poorly in the tails. This is a pretty grim result, its not hard to predict the central cluser well even if you just use the benchmark with a couple adjustments. The tails is where this feature should really be activating to make a difference.
 
-An early architectural choice actually 
+An early architectural choice actually turns out to have inhibited learning this feature. If we spot check some post pooled vectors, they actually look surprisingly similar to champions by themselves, even with attention before hand. Turns out, without positional embedding, attention isnt really capable of differentiating between number of tokens passed through to it. And after attention, we simply take the mean of all the token vectors to produce a board state vector. If we take the sum instead however, we are able to essentially add a degree of freedom, where now the size of the vector would be able to easily represent how many champions are on a board. Lets retrain.
 
-An early architectural choice had a surprisingly large effect. Switching from mean pooling to sum pooling improved test MAE from 1.557 to 1.483 — a 5% improvement with no other changes.
+![Training curve showing train and test MAE converging around 1.48](/assets/images/training_curve.png)
 
-The reason is straightforward: mean pooling divides by token count, destroying information about *how many* units are on the board. With sum pooling, the magnitude of the pooled vector scales with board size. This matters because champion count is strongly predictive in the data:
 
 | Champions | Data avg placement | Sum pool prediction | Mean pool prediction |
 |-----------|-------------------|--------------------|--------------------|
