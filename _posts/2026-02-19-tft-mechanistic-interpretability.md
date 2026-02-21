@@ -99,25 +99,7 @@ Great. Our model is now correctly handling the two most important features direc
 
 ## Hypothesis 3: Prismatic Traits as Sparse Features
 
-The MLP head has 32 hidden neurons, each contributing to the final placement prediction. Most encode diffuse features, but one stands out.
+We can now begin looking to see if our model has learnt 'trait' features. To begin with, one of the most obvious cases that would stand out to a human would be 'prismatic traits', a rare occurance of a constellation of champions/emblems that normally guarantees a first placement.
 
-**Neuron 13** pushes the prediction toward 1st place, and its activation pattern is remarkably clean:
-
-| Board condition | N13 activation |
-|----------------|---------------|
-| 8 BG + 2 BG emblems | +0.98 |
-| 8 Yordle + 2 Yordle emblems | +0.95 |
-| 8 Ionia + 2 Ionia emblems | +1.00 |
-| Control board 1 + 2 BG emblems | **0.00** |
-| Control board 2 + 2 BG emblems | **0.00** |
-
-N13 fires when matching emblems appear on trait-heavy boards, and *does not fire* when the same emblems appear on control boards. This is the most interpretable finding in the model: a single neuron has learned to detect "emblems on a synergy-heavy board" — a genuine contextual feature, not just emblem presence.
-
-Other MLP neurons show more trait-specific patterns:
-- **N8** detects BG emblem presence (fires regardless of board context)
-- **N26** is Noxus-specific (suppressed by Noxus emblems on Noxus boards)
-- **N16** and **N15** are suppressed by Yordle and Ionia emblems respectively on matching boards
-
-The MLP uses a mix of generic and trait-specific neurons. The generic ones (N13) capture "emblems help trait boards." The trait-specific ones respond to particular emblem types but haven't fully learned that the emblem *must* match the board's trait.
 
 *The code for this project is on [GitHub](https://github.com/alexayvazyan/projects).*
