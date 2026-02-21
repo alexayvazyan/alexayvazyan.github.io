@@ -89,6 +89,7 @@ If we take the sum instead after the transformer, we allow the size of the vecto
 
 ![Training curve showing train and test MAE converging around 1.48](/assets/images/training_curve.png)
 
+MAE 1.55 -> 1.45.
 
 ![Sum vs Mean pooling fit](/assets/images/pooling_sum_vs_mean.png)
 
@@ -119,63 +120,4 @@ Other MLP neurons show more trait-specific patterns:
 
 The MLP uses a mix of generic and trait-specific neurons. The generic ones (N13) capture "emblems help trait boards." The trait-specific ones respond to particular emblem types but haven't fully learned that the emblem *must* match the board's trait.
 
-## The Pooled Representation
-
-The 8-dimensional sum-pooled vector — the only input to the MLP — encodes a smooth placement gradient:
-
-![Pooled vector analysis showing 8D encoding of placement information](/assets/images/pooled_analysis.png)
-*Mean pooled vector by placement, showing smooth gradients across multiple dimensions from 1st to 8th place.*
-
-| Dimension | Correlation with placement | Role |
-|-----------|--------------------------|------|
-| D0 | r = −0.40 | Strongest "good board" signal |
-| D6 | r = +0.40 | Second strongest |
-| D5 | r = +0.33 | Third |
-| D7 | r = −0.30 | Fourth |
-| D2, D3 | r ≈ 0 | Non-placement features |
-
-The model distributes placement information across multiple dimensions rather than using a single "good/bad" axis. Adding matching emblems consistently shifts D5 up, D6 down, and D1 down — a consistent "emblem boost" direction in 8D space regardless of which trait.
-
-## Residual Embedding Structure
-
-After projecting out the dominant strength direction, the remaining 7 dimensions show weak trait signals:
-
-![Residual clusters after removing strength direction](/assets/images/residual_clusters.png)
-*Embedding structure after removing the strength axis. Trait groupings are visible but weak.*
-
-Trait signals are present but weak (gaps of 0.1–0.26 between trait clusters). The model has not cleanly separated traits into distinct directions — they're superimposed across multiple dimensions. Notably, emblem tokens do **not** land near their trait's champions in this residual space (only 2 of 21 emblems have their nearest neighbor sharing the same trait).
-
-## Summary: Shortcuts vs. Understanding
-
-The model predicts placement through a hierarchy of shortcuts:
-
-1. **Champion identity** (dominant): Sum the "strength" vectors of individual champions. More strong champions → lower predicted placement.
-2. **Token count**: More tokens = later in the game = generally stronger board. Sum pooling encodes this directly in vector magnitude.
-3. **Emblem tier list**: Certain emblems (BG, Yordle) are associated with winning boards in training data. They shift the pooled vector in a consistent "good" direction.
-4. **Contextual co-occurrence**: The emblem effect is partially contextual — BG emblems help more on BG-heavy boards — but this is co-occurrence memorization, not trait counting.
-
-What the model has **not** learned:
-- Trait counting (how many units share a trait)
-- Trait breakpoints (thresholds like 10 Bilgewater that trigger bonuses)
-- That an emblem must match the board's trait to be useful
-- Compositional rules that transfer to unseen champion combinations
-
-## What I Took Away
-
-**On interpretability methodology**: The most productive approach was forming specific, falsifiable hypotheses and designing controlled experiments. "The model uses trait matching" is a hypothesis; swapping BG emblems onto a Yordle board is the experiment that falsifies it. Working with a 2,424-parameter model meant I could always ground my hypotheses in actual parameter values rather than relying on behavioral tests alone.
-
-**On model behavior**: Even tiny models find statistical shortcuts. The model achieves reasonable accuracy (MAE 1.48 vs. 2.0 baseline) without learning any of the compositional rules that actually govern TFT. This is a miniature version of a broader question in interpretability: when a model performs well on a benchmark, which of the task's actual rules has it internalized, and which has it approximated with heuristics?
-
-**On architecture choices**: Sum vs. mean pooling — a one-line code change — fundamentally altered what the model could represent. It's a reminder that architectural decisions constrain the hypothesis space before training even begins.
-
-## Open Questions
-
-- Can a larger model (d_model=16 or 32) learn true trait counting, or is the training data too sparse for compositional features?
-- Would explicit count features (e.g., trait count vectors appended to the pooled representation) enable breakpoint learning?
-- Is the attention head doing anything useful, or would a pure bag-of-embeddings model perform identically?
-- Could data augmentation — permuting champion order, synthetically generating prismatic boards — help the model learn sparse compositional features?
-- In a slightly larger model, would we find evidence of superposition (more decodable features than embedding dimensions)?
-
----
-
-*The code for this project is on [GitHub](https://github.com/alexayvazyan/cpplearning).*
+*The code for this project is on [GitHub](https://github.com/alexayvazyan/projects).*
