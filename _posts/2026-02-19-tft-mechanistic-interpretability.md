@@ -151,6 +151,15 @@ If we sweep across the most represented axis (Bilgewater), we can see this clear
   │ N13       │ 0   │ 0   │ 0   │ 0   │ 0   │ 0   │ 0   │ 0.61 │ 0.83 │ 0.70 │ 1.47 │
   └───────────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴──────┴──────┴──────┴──────┘
 
+Because the model is relatively straightforward (1 layer of neurons), we can go backwards to see what dimensions actually encode this information by looking at the weights that point to neuron 13. There are only two such weights from our 8d board state that feed into this neuron with non zero weights, dimension 2 and 5. A quick look shows that neither of these dimensions are correlated with general champion strength, but rather represent something about the composition. Dim 2 seemingly measure how 'standard' a board is, with general high sample control groups scoring highly here. Dim 5 on the other hand seems to correlate a lot more with boards that have high 'trait' champions + emblems. A high presence of Dim 5 and low presence of Dim 2 is thus what ultimately activates neuron 13.
+
+As a slight side note, I actually managed to find another rather monosemantic neuron, N20. This neuron basically only fires on boards with <3 champions and has a very high weight to 1st and 2nd place. Hilariously, the model has clearly learnt the behavior of people selling their boards when they are in 2nd place and resigning themselves, or if they are in first place with a 3 star 5 cost champion, with these gamestates occuring with roughly 100 samples, or 1% frequency.
+
+It definitely begs the question as to whether we will see clearer delegation of the trait feature to N13 if we just upped the samples by a factor of lets say 3x for each of the prismatic traits. This is certainly worth investigating, but for now we can turn our eyes to the transformer block pre sum pooling to see whats going on there.
+
+
+
+
 
 
 
