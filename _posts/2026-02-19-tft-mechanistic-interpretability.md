@@ -27,7 +27,7 @@ More data was available, such as items for each champion, as well as the traits 
 **Architecture**:
 - **Unified token sequence**: Champions and emblems (items that add a trait) share a single vocabulary (124 tokens: 1 pad + 101 champions + 22 emblems) and attend to each other in the same sequence
 - We take this 124 dimensional space for champions and emblems and project it into 8d vectors, one for each token.
-- We run each token through a singular attention head to let the model discover champion 'synergies'.
+- We run each token through a singular attention head + FFN to let the model discover champion 'synergies'.
 - We then pool all the tokens together into a single vector intending to encapsulate the entire 'board state'.
 - We then do a 32 neuron FFN over the board state output which directly unembeds to the logits, which then get softmaxed to probabilities of placing 1-8.
 - Loss: CrossEntropy + MAE (ordinal-aware)
