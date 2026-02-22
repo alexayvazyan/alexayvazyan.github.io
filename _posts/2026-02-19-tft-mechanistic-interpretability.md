@@ -117,7 +117,9 @@ If we actually look at the neurons just before the logits, we can see some inter
 | Placement | 1st | 2nd | 3rd | 4th | 5th | 6th | 7th | 8th |
 |-----------|------|------|------|------|------|------|------|------|
 | Weight | +0.34 | -0.21 | -0.15 | -0.11 | -0.04 | +0.02 | +0.09 | +0.08 |
+
 N13 points mostly to 1st place, and away from 2nd or third, pretty flat for everything else. Looking at its activations, its pretty clearly encoding something about high trait density.
+
 | Board | + Matching Emb | No Emb | Delta |
 |-------|---------------|--------|-------|
 | 8 Bilgewater + 2 fill | 1.37 | 0.46 | +0.91 |
@@ -127,8 +129,11 @@ N13 points mostly to 1st place, and away from 2nd or third, pretty flat for ever
 | 8 Void + 2 fill | 1.22 | 0.63 | +0.59 |
 | Control 1 (mixed) | 0.00 | 0.00 | +0.00 |
 | Control 2 (mixed) | 0.10 | 0.00 | +0.10 |
+
 On relatively mixed boards that still place well, this neuron does not activate. But on any heavy trait board (except seemingly 8 Noxus, only 4 samples so not surprising), it activates, and with increasing strength if that board state is paired with matching emblems.
+
 If we sweep across the most represented axis (Bilgewater), we can see this clear phenomena.
+
 | BG champs | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
 |-----------|---|---|---|---|---|---|---|------|------|------|------|
 | N13 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0.61 | 0.83 | 0.70 | 1.47 |
