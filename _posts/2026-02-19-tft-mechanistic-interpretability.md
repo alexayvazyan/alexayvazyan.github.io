@@ -101,55 +101,37 @@ Great. Our model is now correctly handling the two most important features direc
 
 We can now begin looking to see if our model has learnt 'trait' features. To begin with, one of the most obvious cases that would stand out to a human would be 'prismatic traits', a rare occurance of a constellation of champions/emblems that normally guarantees a first placement.
 
-  ┌────────────┬──────────┬────────┬──────┬────────┬───────────┬────────────┐                                                                    
-  │   Trait    │ # boards │ Actual │ Pred │ No emb │ Wrong emb │ Wrong type │
-  ├────────────┼──────────┼────────┼──────┼────────┼───────────┼────────────┤                                                                    
-  │ Bilgewater │ 23       │ 1.09   │ 1.55 │ 3.93   │ 5.21      │ Noxus      │                              
-  ├────────────┼──────────┼────────┼──────┼────────┼───────────┼────────────┤                                                                    
-  │ Noxus      │ 4        │ 1.00   │ 2.27 │ 2.90   │ 2.12      │ Bilgewater │                              
-  ├────────────┼──────────┼────────┼──────┼────────┼───────────┼────────────┤
-  │ Ionia      │ 8        │ 1.00   │ 2.70 │ 2.93   │ 3.23      │ Bilgewater │
-  ├────────────┼──────────┼────────┼──────┼────────┼───────────┼────────────┤
-  │ Yordle     │ 12       │ 1.00   │ 2.28 │ 2.90   │ 3.48      │ Noxus      │
-  ├────────────┼──────────┼────────┼──────┼────────┼───────────┼────────────┤
-  │ Shurima    │ 6        │ 1.33   │ 2.27 │ 2.27   │ 2.27      │ Bilgewater │
-  └────────────┴──────────┴────────┴──────┴────────┴───────────┴────────────┘
+| Trait | # boards | Actual | Pred | No emb | Wrong emb | Wrong type |
+|-------|----------|--------|------|--------|-----------|------------|
+| Bilgewater | 23 | 1.09 | 1.55 | 3.93 | 5.21 | Noxus |
+| Noxus | 4 | 1.00 | 2.27 | 2.90 | 2.12 | Bilgewater |
+| Ionia | 8 | 1.00 | 2.70 | 2.93 | 3.23 | Bilgewater |
+| Yordle | 12 | 1.00 | 2.28 | 2.90 | 3.48 | Noxus |
+| Shurima | 6 | 1.33 | 2.27 | 2.27 | 2.27 | Bilgewater |
 
 Here is a summary of the prismatic trait boards present in the test set, and what is predicted of them. As can be seen, these are incredibly sparse. Of the ~12,000 boards in the test set, the most represented prismatic board is that of 10 Bilgewater, with only 23 samples (0.2%).
 We can see some signs of life in these predictions, they are mostly skewed towards first place when compared to the average 10 unit board placement (2.9), and they generally get worse when you take out the emblems / replace them with another trait's emblems, with the exception of replacing Noxus.
 The reality is probably that these features are just too sparse to be worth taking up an entire dedicated monosemantic neuron. 
 
 If we actually look at the neurons just before the logits, we can see some interesting findings. In particular, #13 seems to capture a lot of what we are looking for.
-  ┌───────────┬───────┬───────┬───────┬───────┬───────┬───────┬───────┬───────┐
-  │ Placement │  1st  │  2nd  │  3rd  │  4th  │  5th  │  6th  │  7th  │  8th  │
-  ├───────────┼───────┼───────┼───────┼───────┼───────┼───────┼───────┼───────┤
-  │ Weight    │ +0.34 │ -0.21 │ -0.15 │ -0.11 │ -0.04 │ +0.02 │ +0.09 │ +0.08 │
-  └───────────┴───────┴───────┴───────┴───────┴───────┴───────┴───────┴───────┘
+| Placement | 1st | 2nd | 3rd | 4th | 5th | 6th | 7th | 8th |
+|-----------|------|------|------|------|------|------|------|------|
+| Weight | +0.34 | -0.21 | -0.15 | -0.11 | -0.04 | +0.02 | +0.09 | +0.08 |
 N13 points mostly to 1st place, and away from 2nd or third, pretty flat for everything else. Looking at its activations, its pretty clearly encoding something about high trait density.
-  ┌───────────────────────┬────────────────┬────────┬───────┐                                                                                    
-  │         Board         │ + Matching Emb │ No Emb │ Delta │                                                                                    
-  ├───────────────────────┼────────────────┼────────┼───────┤                                              
-  │ 8 Bilgewater + 2 fill │ 1.37           │ 0.46   │ +0.91 │
-  ├───────────────────────┼────────────────┼────────┼───────┤
-  │ 8 Yordle + 2 fill     │ 1.84           │ 0.95   │ +0.88 │
-  ├───────────────────────┼────────────────┼────────┼───────┤
-  │ 8 Ionia + 2 fill      │ 0.89           │ 0.00   │ +0.89 │
-  ├───────────────────────┼────────────────┼────────┼───────┤
-  │ 8 Noxus + 2 fill      │ 0.00           │ 0.00   │ +0.00 │
-  ├───────────────────────┼────────────────┼────────┼───────┤
-  │ 8 Void + 2 fill       │ 1.22           │ 0.63   │ +0.59 │
-  ├───────────────────────┼────────────────┼────────┼───────┤
-  │ Control 1 (mixed)     │ 0.00           │ 0.00   │ +0.00 │
-  ├───────────────────────┼────────────────┼────────┼───────┤
-  │ Control 2 (mixed)     │ 0.10           │ 0.00   │ +0.10 │
-  └───────────────────────┴────────────────┴────────┴───────┘
+| Board | + Matching Emb | No Emb | Delta |
+|-------|---------------|--------|-------|
+| 8 Bilgewater + 2 fill | 1.37 | 0.46 | +0.91 |
+| 8 Yordle + 2 fill | 1.84 | 0.95 | +0.88 |
+| 8 Ionia + 2 fill | 0.89 | 0.00 | +0.89 |
+| 8 Noxus + 2 fill | 0.00 | 0.00 | +0.00 |
+| 8 Void + 2 fill | 1.22 | 0.63 | +0.59 |
+| Control 1 (mixed) | 0.00 | 0.00 | +0.00 |
+| Control 2 (mixed) | 0.10 | 0.00 | +0.10 |
 On relatively mixed boards that still place well, this neuron does not activate. But on any heavy trait board (except seemingly 8 Noxus, only 4 samples so not surprising), it activates, and with increasing strength if that board state is paired with matching emblems.
 If we sweep across the most represented axis (Bilgewater), we can see this clear phenomena.
-  ┌───────────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬──────┬──────┬──────┬──────┐
-  │ BG traits │  0  │  1  │  2  │  3  │  4  │  5  │  6  │  7   │  8   │  9   │  10  │
-  ├───────────┼─────┼─────┼─────┼─────┼─────┼─────┼─────┼──────┼──────┼──────┼──────┤
-  │ N13       │ 0   │ 0   │ 0   │ 0   │ 0   │ 0   │ 0   │ 0.61 │ 0.83 │ 0.70 │ 1.47 │
-  └───────────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┴──────┴──────┴──────┴──────┘
+| BG champs | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|-----------|---|---|---|---|---|---|---|------|------|------|------|
+| N13 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0.61 | 0.83 | 0.70 | 1.47 |
 
 Because the model is relatively straightforward (1 layer of neurons), we can go backwards to see what dimensions actually encode this information by looking at the weights that point to neuron 13. There are only two such weights from our 8d board state that feed into this neuron with non zero weights, dimension 2 and 5. A quick look shows that neither of these dimensions are correlated with general champion strength, but rather represent something about the composition. Dim 2 seemingly measure how 'standard' a board is, with general high sample control groups scoring highly here. Dim 5 on the other hand seems to correlate a lot more with boards that have high 'trait' champions + emblems. A high presence of Dim 5 and low presence of Dim 2 is thus what ultimately activates neuron 13.
 
