@@ -16,7 +16,7 @@ date: 2026-02-19
 - It's a domain I have good intuition in, which makes feature identification significantly easier
 - It's fun
 
-Teamfight Tacticts (TFT) is a game I played a lot in university. Very fun, and conceptually similar to chess, just more degrees of freedom and 8 players to one match. Interpretability is a lot easier with the lights on. The leading question that made me want to investigate this project was whether the model would learn synergistic 'trait' connections between different champions fielded, and if so, where would this be visible from an outsider looking in?
+Teamfight Tactics (TFT) is a game I played a lot in university. Very fun, and conceptually similar to chess, just more degrees of freedom and 8 players to one match. Interpretability is a lot easier with the lights on. The leading question that made me want to investigate this project was whether the model would learn synergistic 'trait' connections between different champions fielded, and if so, where would this be visible from an outsider looking in?
 
 ## The Model
 
@@ -79,13 +79,13 @@ I guess before even asking these questions, we should ask, *does* the actually m
 ![Mean pooling fit](/assets/images/pooling_mean_only.png)
 
 
-We see that while we do okay at predicting the central cluster, we predict poorly in the tails. This is a pretty grim result, its not hard to predict the central cluser well even if you just use the benchmark with a couple adjustments. The tails is where this feature should really be activating to make a difference.
+We see that while we do okay at predicting the central cluster, we predict poorly in the tails. This is a pretty grim result, its not hard to predict the central cluster well even if you just use the benchmark with a couple adjustments. The tails is where this feature should really be activating to make a difference.
 
 An early architectural choice actually turns out to have inhibited learning this feature. If we spot check some post pooled vectors, they actually look surprisingly similar to champions by themselves, even with attention before hand. 
 
-This led to a fun little investigation where it turns out that a transformer (softmaxed attention + FFN) -> mean pooling cant count tokens! I'll do a quick writeup sometime to sumarize the findings there.
+This led to a fun little investigation where it turns out that a transformer (softmaxed attention + FFN) -> mean pooling cant count tokens! I'll do a quick writeup sometime to summarize the findings there.
 
-If we take the sum instead after the transformer, we allow the size of the vector would be able to easily represent how many champions are on a board. Lets retrain.
+If we take the sum instead after the transformer, we allow the size of the vector to be able to easily represent how many champions are on a board. Lets retrain.
 
 ![Training curve showing train and test MAE converging around 1.48](/assets/images/training_curve.png)
 
@@ -138,7 +138,9 @@ If we sweep across the most represented axis (Bilgewater), we can see this clear
 |-----------|---|---|---|---|---|---|---|------|------|------|------|
 | N13 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0.61 | 0.83 | 0.70 | 1.47 |
 
-Because the model is relatively straightforward (1 layer of neurons), we can go backwards to see what dimensions actually encode this information by looking at the weights that point to neuron 13. There are only two such weights from our 8d board state that feed into this neuron with non zero weights, dimension 2 and 5. A quick look shows that neither of these dimensions are correlated with general champion strength, but rather represent something about the composition. Dim 2 seemingly measure how 'standard' a board is, with general high sample control groups scoring highly here. Dim 5 on the other hand seems to correlate a lot more with boards that have high 'trait' champions + emblems. A high presence of Dim 5 and low presence of Dim 2 is thus what ultimately activates neuron 13.
+Because the model is relatively straightforward (1 layer of neurons), we can go backwards to see what dimensions actually encode this information by looking at the weights that point to neuron 13. There are only two such weights from our 8d board state that feed into this neuron with non zero weights, dimension 2 and 5. 
+
+A quick look shows that neither of these dimensions are correlated with general champion strength, but rather represent something about the composition. Dim 2 seemingly measures how 'standard' a board is, with general high sample control groups scoring highly here. Dim 5 on the other hand seems to correlate a lot more with boards that have high 'trait' champions + emblems. A high presence of Dim 5 and low presence of Dim 2 is thus what ultimately activates neuron 13.
 
 As a slight side note, I actually managed to find another rather monosemantic neuron, N20. This neuron basically only fires on boards with <3 champions and has a very high weight to 1st and 2nd place. Hilariously, the model has clearly learnt the behavior of people selling their boards when they are in 2nd place and resigning themselves, or if they are in first place with a 3 star 5 cost champion, with these gamestates occuring with roughly 100 samples, or 1% frequency.
 
