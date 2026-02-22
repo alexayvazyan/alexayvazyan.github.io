@@ -147,6 +147,14 @@ As a slight side note, I actually managed to find another rather monosemantic ne
 It definitely begs the question as to whether we will see clearer delegation of the trait feature to N13 if we just upped the samples by a factor of lets say 3x for each of the prismatic traits. This is certainly worth investigating, but for now we can turn our eyes to the transformer block pre sum pooling to see whats going on there.
 
 
+## Investigation into Attention
+
+How shall we visualize attention to see if there is anything interpretable going on? One initial idea might be to look at the matrices of Q, K, V against the full set of tokens to see if there are any distinguishable features at play. Perhaps certain champions learn to ask similar questions such as "Am I in this composition as part of a trait or standalone?".
+
+![Q matrix](/assets/images/qkv_q_cosine.png)
+![K matrix](/assets/images/qkv_k_cosine.png)
+![V matrix](/assets/images/qkv_v_cosine.png)
+
 
 
 
