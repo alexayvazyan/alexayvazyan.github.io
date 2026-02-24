@@ -155,10 +155,25 @@ How shall we visualize attention to see if there is anything interpretable going
 ![K matrix](/assets/images/qkv_k_cosine.png)
 ![V matrix](/assets/images/qkv_v_cosine.png)
 
+This was very surprising for me to see. The most striking thing is obviously that every single champion's query token is identical in direction. The magnitudes differ, and a quick check shows that this magnitude encodes the champion strength (r=0.6 with PC1 of embedding). The query matrix has completely collapsed into a rank 1 matrix.
 
+In a similar vein, the key matrix has also collapsed, although with two directions across a single dimension (allowing negative scalars). If we take a basis on this 1D projection and calculate the correlation between the scalar multiple and PC1, we see an even stronger correlation of -0.98. This matrix has also collapsed to rank 1.
 
+Both matricies flattened the embedding domain into a singular direction represeting strength, with K basically taking PC1 exactly, whereas Q went for something similar. All queries have a positive dot product with eachother because a large constant moves them away from the origin.
 
+We can represent our query transformed champions as q_i = a + b_i * v, and our key transformed champions k_j = b_j * v, where v is orthnormal basis.
+Precisely, 
+v = [+0.36, +0.33, +0.36, -0.33, -0.33, +0.41, -0.36, +0.34]
+a = [-0.63, -0.59, -0.68, +0.59, +0.61, -0.68, +0.66, -0.59]
+and 
+b_i is of range [-1.51, +1.65], 
+b_j is of range [-3.02, +1.37] (negative direction of v encodes strongest)  
 
+Our Attention scores 
+a_i_j = q_i * k_j 
+      = b_j * (a * v + b_i) 
+      = b_j * (b_i - 1.78)
+which is a representation that is almost quadratic in champion strength, given b_j and b_i both are encoding this feature. We obviously assign high attention scores between strong champions, but clearly when b_j > 0 (weak champion), we attend more with other weak champions, although this is certainly a **weaker** effect.
 
 
 *The code for this project is on [GitHub](https://github.com/alexayvazyan/projects).*
