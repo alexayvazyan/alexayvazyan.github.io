@@ -164,23 +164,23 @@ Both matricies flattened the embedding domain into a singular direction represet
 We can represent our query transformed champions as q_i = a + b_i * v, and our key transformed champions k_j = b_j * v, where v is orthnormal basis.
 Precisely, 
 
-v = [+0.36, +0.33, +0.36, -0.33, -0.33, +0.41, -0.36, +0.34]
+      v = [+0.36, +0.33, +0.36, -0.33, -0.33, +0.41, -0.36, +0.34]
 
-a = [-0.63, -0.59, -0.68, +0.59, +0.61, -0.68, +0.66, -0.59] I(-1.78 * v)
+      a = [-0.63, -0.59, -0.68, +0.59, +0.61, -0.68, +0.66, -0.59] I(-1.78 * v)
 
 and 
 
-b_i is of range [-1.51, +1.65], 
+      b_i is of range [-1.51, +1.65], 
 
-b_j is of range [-3.02, +1.37] (negative direction of v encodes strongest)  
+      b_j is of range [-3.02, +1.37] (negative direction of v encodes strongest)  
 
 Our Attention scores 
 
-a_i_j = q_i * k_j 
+      a_i_j = q_i * k_j 
 
-      = b_j * (a * v + b_i) 
+            = b_j * (a * v + b_i) 
       
-      = b_j * (b_i - 1.78)
+            = b_j * (b_i - 1.78)
 which is a representation that is almost quadratic in champion strength, given b_j and b_i both are encoding this feature. We obviously assign high attention scores between strong champions, but clearly when b_j > 0 (weak champion), we attend more with other weak champions, although this is certainly a **weaker** effect as if there were any strong champions post softmax attention weight with the weak champion would be ~0. 
 
 
