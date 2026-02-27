@@ -181,7 +181,9 @@ Our Attention scores
             = b_j * (a * v + b_i) 
       
             = b_j * (b_i - 1.78)
-which is a representation that is almost quadratic in champion strength, given b_j and b_i both are encoding this feature. We obviously assign high attention scores between strong champions, but clearly when b_j > 0 (weak champion), we attend more with other weak champions, although this is certainly a **weaker** effect as if there were any strong champions post softmax attention weight with the weak champion would be ~0. 
+which is a representation that is almost quadratic in champion strength, given b_j and b_i both are somewhat encoding "strength". We obviously assign high attention scores between strong champions, but clearly when b_j > 0 (weak champion), we attend more with other weak champions, although this is certainly a **weaker** effect as if there were any strong champions post softmax attention weight with the weak champion would be ~0. 
 
+While it is true that each row/column in our attention matrix is just a scalar multiple of eachother, the nonlinearity of softmax ensures our matrix is not degenerate. However, all champions will attend in the same preference rank to all other champions.
 
+Taking a step back, its pretty clear that our attention head is doing very little that the embedding isn't already doing. Indeed, if we just delete it, there is very little difference in model performance, MAE stays basically identical.
 *The code for this project is on [GitHub](https://github.com/alexayvazyan/projects).*
