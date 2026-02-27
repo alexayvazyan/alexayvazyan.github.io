@@ -71,7 +71,42 @@ The softmax weights sum to 1 by construction. So the attention output is a **con
 
 If all tokens are identical (same embedding), then softmax gives uniform weights 1/N, and the attention output is just v — identical regardless of N. Mean pooling of N copies of v is still v.
 
-The per-token FFN inside the TransformerEncoderLayer is what provides the partial counting ability. The FFN can transform each token's representation *after* attention, and the slight variations in attention output across different sequence lengths give the FFN something to work with. But this is an indirect, lossy signal.
+But the transformer with mean pooling *did* partially learn to count. What mechanism is responsible — the attention, the FFN, or both? And can we just scale it up until it works?
+
+## Isolating the Mechanism
+
+To answer this, I tested every combination on a minimal setup: vocabulary of 5, sequences of length 1-4, target = count non-pad tokens. This gives only 780 possible unique inputs, so memorization is theoretically feasible with enough parameters.
+
+Three types of model, all with mean pooling:
+- **Attention only**: Embed → Multi-head attention + residual + LayerNorm → mean pool → linear head
+- **FFN only**: Embed → FFN + residual + LayerNorm → mean pool → linear head (per-token FFN, no attention)
+- **Full transformer**: Embed → TransformerEncoderLayer(s) (attention + FFN) → mean pool → linear head
+
+| Model | Layers | Heads | d_model | FFN width | Params | MAE | Pred 1 | Pred 2 | Pred 3 | Pred 4 |
+|-------|--------|-------|---------|-----------|--------|-----|--------|--------|--------|--------|
+| Bag + mean pool | — | — | 8 | — | 65 | 0.981 | 2.42 | 2.42 | 2.42 | 2.42 |
+| Bag + sum pool | — | — | 8 | — | 65 | **0.000** | 1.00 | 2.00 | 3.00 | 4.00 |
+| FFN only | — | — | 8 | 32 | 633 | 0.981 | 2.42 | 2.42 | 2.43 | 2.42 |
+| FFN only | — | — | 8 | 128 | 2,265 | 0.979 | 2.25 | 2.26 | 2.26 | 2.26 |
+| FFN only | — | — | 8 | 512 | 8,793 | 0.979 | 2.18 | 2.18 | 2.18 | 2.18 |
+| FFN only | — | — | 16 | 512 | 17,073 | 0.979 | 2.32 | 2.33 | 2.33 | 2.33 |
+| Attention only | — | 1 | 8 | — | 369 | 0.450 | 1.17 | 2.20 | 2.92 | 3.25 |
+| Attention only | — | 1 | 16 | — | 1,249 | 0.505 | 1.20 | 2.27 | 2.83 | 3.21 |
+| Attention only | — | 1 | 32 | — | 4,545 | 0.494 | 1.20 | 2.21 | 2.76 | 3.17 |
+| Full transformer | 1 | 1 | 8 | 32 | 937 | 0.397 | 1.15 | 2.12 | 2.91 | 3.33 |
+| Full transformer | 1 | 1 | 8 | 128 | 2,569 | 0.251 | 1.14 | 1.97 | 2.88 | 3.67 |
+| Full transformer | 1 | 1 | 8 | 512 | 9,097 | 0.215 | 1.12 | 1.96 | 2.90 | 3.73 |
+| Full transformer | 2 | 1 | 8 | 128 | 5,073 | 0.212 | 1.15 | 1.92 | 2.92 | 3.73 |
+| Full transformer | 1 | 4 | 16 | 64 | 3,409 | 0.250 | 1.18 | 1.95 | 2.93 | 3.68 |
+| Full transformer | 2 | 4 | 16 | 64 | 6,689 | 0.214 | 1.13 | 1.91 | 2.93 | 3.72 |
+
+Three clear findings:
+
+**1. FFN alone does nothing.** Even with 17,073 parameters and a 512-wide FFN, the model predicts ~2.3 for every input — identical to bag + mean pool. The per-token FFN sees each token independently *before* mean pooling, so no amount of FFN width helps. This rules out memorization through the FFN.
+
+**2. Attention is the counting mechanism.** Attention-only models get to MAE ~0.45 with just 369 parameters, correctly ordering the counts (1.17, 2.20, 2.92, 3.25). The mechanism is likely that the attention *pattern* itself varies with sequence length — with more tokens, attention entropy increases and self-attention weight decreases. This leaves a count-correlated signature in the residual stream that survives mean pooling.
+
+**3. FFN amplifies the attention signal, but it saturates.** The full transformer (attention + FFN) gets down to MAE 0.21, better than attention alone. The FFN transforms the attention-modified representations to make the count signal more linearly readable. But scaling further doesn't help — 9,097 params and 6,689 params both plateau around MAE 0.21. With only 780 possible inputs, the model could in principle memorize them all, but it can't: the information bottleneck of mean pooling prevents it. The exhaustive test set MAE is actually *worse* than the random test MAE, confirming no memorization is occurring.
 
 ## The Fundamental Issue
 
@@ -80,7 +115,7 @@ The core problem is compositional:
 1. **Softmax normalizes** — attention weights sum to 1, so the weighted average is bounded regardless of N
 2. **Mean pooling normalizes** — the sum is divided by N
 
-Both operations independently destroy count information. Together, there's no clean path for the count to survive to the output.
+Both operations independently destroy count information. Together, there's no clean path for the count to survive to the output. Attention can leak a partial signal through pattern variation, but the FFN can only amplify what attention provides — it can't create count information from scratch.
 
 **Sum pooling** fixes this because the un-normalized sum grows linearly with N. Even if each token's representation is count-invariant after attention, summing N of them produces a vector whose norm scales with N. The linear head after pooling can simply read the norm.
 
