@@ -108,6 +108,23 @@ Three clear findings:
 
 **3. FFN amplifies the attention signal, but it saturates.** The full transformer (attention + FFN) gets down to MAE 0.21, better than attention alone. The FFN transforms the attention-modified representations to make the count signal more linearly readable. But scaling further doesn't help — 9,097 params and 6,689 params both plateau around MAE 0.21. With only 780 possible inputs, the model could in principle memorize them all, but it can't: the information bottleneck of mean pooling prevents it. The exhaustive test set MAE is actually *worse* than the random test MAE, confirming no memorization is occurring.
 
+## Does Scaling Break Through?
+
+A natural question: maybe the models above are just too small. If we scale the full transformer aggressively — more layers, more heads, wider dimensions — can it eventually learn to count through mean pooling?
+
+| Model | Layers | Heads | d_model | FFN neurons | Params | MAE | Pred 1 | Pred 2 | Pred 3 | Pred 4 |
+|-------|--------|-------|---------|-------------|--------|-----|--------|--------|--------|--------|
+| Full transformer | 2 | 4 | 16 | 64 | 6,689 | 0.214 | 1.13 | 1.91 | 2.93 | 3.72 |
+| Full transformer | 4 | 1 | 8 | 512 | 36,193 | 0.207 | 1.20 | 1.97 | 2.91 | 3.76 |
+| Full transformer | 4 | 4 | 16 | 256 | 38,593 | **0.190** | 1.11 | 1.89 | 2.91 | 3.74 |
+| Full transformer | 8 | 4 | 32 | 256 | 168,449 | 0.204 | 1.18 | 1.95 | 2.90 | 3.76 |
+| Full transformer | 4 | 8 | 64 | 512 | 332,545 | 0.191 | 1.09 | 1.87 | 2.85 | 3.73 |
+| Full transformer | 8 | 8 | 64 | 512 | 664,577 | 0.196 | 1.14 | 1.93 | 2.92 | 3.75 |
+
+No. Going from 6,689 to 664,577 parameters (100x) barely moves the needle — MAE plateaus around 0.19. The predictions are stuck: true count 1 gets predicted ~1.1, true count 4 gets predicted ~3.7. The model consistently compresses the range by about 10% on each end and cannot fix this no matter how many parameters you give it.
+
+For comparison, bag + sum pool solves this perfectly (MAE 0.000) with **65 parameters**.
+
 ## The Fundamental Issue
 
 The core problem is compositional:
