@@ -13,4 +13,5 @@ I'm a Quant Trader for almost 3 years now. I've always had an interest in machin
 
 ## Writing
 
-- [Can we see features in a TFT placement prediction transformer?](/2026/02/19/tft-mechanistic-interpretability.html) — Into project to just play around with some rough ideas of mech interp in a domain where I have a good intuition.
+- [Can we see features in a TFT placement prediction transformer?](/2026/02/19/tft-mechanistic-interpretability.html) — Intro project to just play around with some rough ideas of mech interp in a domain where I have a good intuition.
+- [Softmax attention with mean pooling can't count](/2026/02/20/mean-pooling-cant-count.html) — A small architectural choice that silently destroyed one of the most important features in our data.
