@@ -186,4 +186,14 @@ which is a representation that is almost quadratic in champion strength, given b
 While it is true that each row/column in our attention matrix is just a scalar multiple of eachother, the nonlinearity of softmax ensures our matrix is not degenerate. However, all champions will attend in the same preference rank to all other champions.
 
 Taking a step back, its pretty clear that our attention head is doing very little that the embedding isn't already doing. Indeed, if we just delete it, there is very little difference in model performance, MAE stays basically identical.
+
+## Conclusions
+
+This has been a good first look for me to grasp the basic building blocks of a transformer model with my hands. I think the analysis potential on a model like this is relatively limited, in general it's probably true that knowledge extraction is maximized looking at either very simple models or very complex models? 
+
+Some follow up projects/questions on this model:
+- If we oversample the sparse prismatic boards, what will we observe? At what point does N13 specifically activate only for these boards? Will other neurons join the fray and split this feature out? Will attention ever try to capture this?
+- If we swap a single attention head for 4 heads, will we capture more dimensions of the embedding? This was something I noticed when I tried to replicate https://arxiv.org/abs/2301.05217, grokking actually failed and attention degenerated with just 1 head, exactly 4 was required to get the behavior of the model in the paper.
+- Can we systematically figure out how to increase activation of a neuron by backing out which samples in later epochs have largest gradient steps for that neuron, and oversample them?
+
 *The code for this project is on [GitHub](https://github.com/alexayvazyan/projects).*
