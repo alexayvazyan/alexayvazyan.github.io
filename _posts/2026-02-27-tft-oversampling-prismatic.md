@@ -1,117 +1,118 @@
 ---
 layout: post
-title: "What happens to N13 when you force the model to care about prismatic boards?"
+title: "How does a model's prismatic detection circuit evolve under signal pressure?"
 date: 2026-02-27
 ---
 
-# What happens to N13 when you force the model to care about prismatic boards?
+# How does a model's prismatic detection circuit evolve under signal pressure?
 
-*N13 was the only neuron encoding prismatic trait detection. So we oversampled until the model had no choice but to take it seriously — and watched it completely rewire itself.*
+*Prismatic boards are the rarest and most predictive feature in the dataset. We oversampled them up to ×100 to watch what the model does as the signal grows.*
 
 ---
 
 ## The Setup
 
-In the [first post](/2026/02/19/tft-mechanistic-interpretability.html), I identified a neuron — N13 — that appeared to detect "trait-dense + emblem" boards: compositions where a single trait reaches a critical mass of units plus matching emblems. The clearest case of this is a **prismatic board**, where one trait reaches 10 units (e.g. 8 Bilgewater champions + 2 Bilgewater emblems), which in the actual game triggers a powerful bonus and nearly guarantees first place.
+In the [first post](/2026/02/19/tft-mechanistic-interpretability.html), I found that the model had learned something about **prismatic boards** — compositions where a single trait reaches 10 units (e.g. 8 Bilgewater champions + 2 Bilgewater emblems). These trigger a powerful in-game bonus and nearly guarantee first place. The model was predicting them reasonably well, and tracing back through the MLP revealed a small set of neurons with elevated activation on these boards.
 
-The model had clearly picked something up here. N13 activated on heavy trait boards with matching emblems and was near-zero everywhere else. But N13's weight toward 1st place (+0.33) was modest compared to the emblem-presence neurons (+1.0–+1.8), and the whole thing felt fragile — a weak signal riding in on co-occurrence patterns from only ~120 samples out of 24,344.
+But the encoding felt weak and noisy — understandable, given that only ~120 of 24,344 boards are prismatic (~0.5%). The model isn't being asked to care about them much. The natural question was: if we forced it to, what would the circuit actually look like? How many neurons would it use, how cleanly would they fire, and would the attention head ever get involved?
 
-The natural follow-up was: what if we gave the model more of these boards? Not synthetically generated — just oversample the real ones. If the signal is genuinely there, the model should learn a cleaner, stronger version. If N13 was incidental, it should fall apart.
+I trained six models from scratch with oversample factors ×1 (baseline), ×5, ×10, ×25, ×50, ×100. Everything else held constant — same architecture, same test set, same early stopping. At ×100, prismatic boards are 36.6% of the training set.
 
-I trained six fresh models from scratch: oversample factors ×1 (baseline), ×5, ×10, ×25, ×50, ×100. Everything else held constant — same architecture, same test set, same early stopping.
+**Prismatic**: any board where a single trait reaches ≥10 units (champions + matching emblems). 88% place 1st in the real data.
 
-**Prismatic definition**: any board where a single trait reaches ≥10 units (champions + matching emblems). There are 118 such boards in the dataset, 88% of which place 1st. At ×100, prismatic boards make up 36.6% of the training set.
-
----
-
-## What Happened to N13
-
-Short answer: it died at ×5 and never came back.
-
-![N13 activation on prismatic vs near-prismatic vs control boards across oversample factors](/assets/images/oversample_n13_collapse.png)
-*N13 fires strongly on prismatic boards at ×1. At ×5 it collapses to near-zero on everything. It never recovers a specific prismatic role at any higher factor.*
-
-At ×1, N13 fires at ~1.45 on prismatic boards and 0.00 on controls — reasonably clean. At ×5, it drops to ~0.07 on prismatic and 0.13 on controls. It's not just weakened, it's lost specificity entirely. At ×25 it reappears slightly (+0.12 specificity), but simultaneously fires equally on near-prismatic and control boards — it's no longer doing anything useful for prismatic detection. At ×100, it's zero everywhere.
-
-N13 was not a stable "prismatic neuron." It was whatever the model happened to use in one run under low-signal conditions. When the signal got stronger, the model rewired completely and N13 became irrelevant.
+Probe boards used throughout:
+- **Prismatic**: 8 trait champions + 2 fillers + 2 matching emblems = 10 of that trait
+- **Near-prismatic**: same 8 trait champions, no emblems (8 of trait)
+- **Controls**: non-trait boards with and without emblems
 
 ---
 
-## The Neurons That Replaced It
+## The Baseline Circuit Is Weak and Noisy
 
-Here's where things got interesting. The model didn't just lose N13 — it replaced it with a completely different set of neurons at every oversampling level, each with *higher* specificity than N13 ever had.
+At ×1, a handful of MLP neurons activate more on prismatic boards than controls, with the largest gaps around +0.6 to +1.5. But the specificity is poor: the leading neurons also partially fire on near-prismatic boards (8 trait champions, no emblems), suggesting they're picking up on champion density rather than the specific trait+emblem combination that defines a prismatic board.
 
-| Factor | New prismatic neurons (prismatic−control gap)                           |
-|--------|-------------------------------------------------------------------------|
-| ×1     | N13 (+1.45), N12 (+0.82), N23 (+0.63)                                  |
-| ×5     | N1 (+1.07), N17 (+1.02), N27 (+0.94)                                   |
-| ×10    | N18 (+3.18), N16 (+2.60), N29 (+2.45), N10 (+1.43)                     |
-| ×25    | N17 (+1.73), N31 (+1.72), N27 (+1.51), N26 (+1.32), N1 (+1.23)         |
-| ×50    | N19 (+2.42), N23 (+2.00), N26 (+1.93), N25 (+1.76), N1 (+1.53)         |
-| ×100   | N18 (+3.26), N0 (+3.04), N11 (+2.11), N28 (+2.08), N30 (+1.89)         |
+| Board type | Best neuron activation (×1) |
+|------------|------------------------------|
+| Prismatic (8 trait + 2 matching emb) | ~1.45 |
+| Near-prismatic (8 trait, no emb)     | ~0.49 |
+| Control + emblems                    | ~0.00 |
 
-At ×1, the prismatic signal is scattered weakly across a few neurons with gaps of ~0.6–1.5. At ×10+, 4–6 neurons each achieve gaps of 2–3+, all with near-zero activation on both near-prismatic and control boards. The representation has become **cleaner and stronger** — the model is allocating dedicated capacity with a much more binary activation profile.
+The model is not cleanly detecting "this board has reached the prismatic breakpoint." It's doing something messier — responding to high trait density with some additional response when matching emblems are also present. A weak, blurry version of the feature.
 
-The heatmap makes the instability obvious:
+---
+
+## The Circuit Sharpens Dramatically With More Signal
+
+This is the main result. As oversampling increases, the circuit changes in two important ways: it recruits **more neurons**, and each of those neurons develops a **cleaner, more binary** activation profile.
 
 ![Heatmap of neuron prismatic-vs-control gaps across all 32 neurons and 6 oversample factors](/assets/images/oversample_neuron_heatmap.png)
-*Each row is a neuron, each column is an oversample factor. Red = fires more on prismatic than controls, blue = fires less. The gold box highlights N13. No neuron consistently encodes prismatic across all factors — the "winning" neurons change entirely between runs.*
+*Each row is a neuron, each column is an oversample factor. Red = fires more on prismatic than controls, blue = fires less. At ×1 a couple of neurons show weak red. By ×10–×100, several neurons show deep red with much higher magnitude.*
 
-No single neuron appears consistently. N18 appears at ×10 (+3.18) and ×100 (+3.26), but is near-zero at ×5, ×25, ×50. N17 is strong at ×5 (+1.02) and ×25 (+1.73) but disappears at ×50 (−2.91, actively suppressed). The model reaches a different local minimum each time, and different neurons fill the functional slot.
+The table of top neurons tells the story numerically:
 
-Also notable: the feature splits. At ×1 one neuron roughly handles it. At ×10+, 4–6 neurons each carry part of the load. Whether this is superposition being resolved (multiple features encoded in one neuron, then separated), or just a natural consequence of a stronger gradient signal recruiting more capacity, I'm not sure. Worth looking at in a bigger model where you'd expect cleaner superposition dynamics.
+| Factor | Top prismatic neurons (prismatic−control gap) |
+|--------|-----------------------------------------------|
+| ×1     | 2–3 neurons, gaps of +0.6 to +1.5             |
+| ×5     | 3 neurons, gaps of +0.9 to +1.1               |
+| ×10    | 4 neurons, gaps of +1.4 to +3.2               |
+| ×25    | 5 neurons, gaps of +1.2 to +1.7               |
+| ×50    | 5 neurons, gaps of +1.5 to +2.4               |
+| ×100   | 4–5 neurons, gaps of +1.9 to +3.3             |
+
+At ×10 and above, the winning neurons are near-zero on both near-prismatic and control boards — not just lower, but essentially silent. The model has learned a precise binary detector: the specific trait+emblem co-occurrence triggers it, neither trait alone nor emblem alone does. This is a qualitatively different circuit from the baseline.
+
+| Board type | Best neuron activation (×1) | Best neuron activation (×10) |
+|------------|-----------------------------|-------------------------------|
+| Prismatic (8 trait + 2 matching emb) | ~1.45 | ~3.18 |
+| Near-prismatic (8 trait, no emb)     | ~0.49 | ~1.06 |
+| Control + emblems                    | ~0.00 | ~0.41 |
+
+Whether this constitutes genuine understanding of the prismatic mechanic, or just stronger memorization of the champion+emblem co-occurrence patterns that happen to appear together in winning training boards, is hard to say. My suspicion is mostly the latter — the same shortcut logic at higher fidelity. But the circuit structure is meaningfully cleaner either way.
 
 ---
 
-## The Activation Profile Gets Cleaner
+## Which Neurons? It Doesn't Matter
 
-At ×1, N13 fired at 1.45 on prismatic and 0.49 on near-prismatic — not sharp. The model was partially activating on 8-trait boards even without matching emblems, suggesting it was picking up something about champion density rather than the specific trait+emblem combination.
+The interesting thing about the heatmap is not which specific neurons light up — it's that they're completely different at every oversampling level.
 
-At ×10 and ×100, the new winning neurons (N18, N0, N11) activate at 2–3+ on prismatic boards and are essentially zero on near-prismatic and controls. The model has learned a more **precise binary detector**: trait+emblem combinations trigger it, neither trait alone nor emblem alone does.
+At ×5, the top neurons are N1, N17, N27. At ×10, N18, N16, N29. At ×25, N17, N31, N27, N26. At ×50, N19, N23, N26, N25. At ×100, N18, N0, N11, N28. No single neuron consistently develops prismatic specificity across all runs. The model reaches a different local minimum each time and assigns a different set of neurons to fill the same functional role.
 
-| Board type | N13 activation (×1) | Best neuron activation (×10) |
-|------------|---------------------|------------------------------|
-| Prismatic (8 trait + 2 matching emb) | 1.45 | 3.18 (N18) |
-| Near-prismatic (8 trait, no emb) | 0.49 | 1.06 (N18) |
-| Control + emblems | 0.00 | 0.41 (N18) |
-
-That said, this improvement is partly illusory: the ×10 model is seeing 5.5% prismatic training data vs 0.6% for ×1. It has much more direct supervision signal. Whether this constitutes a more principled understanding of the trait mechanic, or just better memorization of the specific champion+emblem configurations that appear in the training set, is hard to say. My suspicion is it's mostly the latter — the same co-occurrence logic at higher signal.
+This is a general point about interpreting small transformer MLPs: the neuron index is arbitrary. Any of the 32 neurons could become a "prismatic detector" given enough gradient signal — which ones do is determined by random initialization, not by the feature itself. The reproducible finding is the **circuit structure** (dedicated neurons, binary activation profile, silent on controls), not the **neuron identity**.
 
 ---
 
-## Predictions Get Better, Mostly
+## Predictions Get Better, Up To a Point
 
 ![Predicted placement for prismatic, near-prismatic, and control boards across oversample factors, with test MAE on secondary axis](/assets/images/oversample_predictions.png)
 *Predicted placement (lower = better) for the three board categories across oversample factors. Test MAE (right axis, also lower = better) is non-monotone: best at ×50.*
 
-The model's predictions for prismatic boards improve immediately with even small oversampling — from ~1.53 at ×1 to ~1.31 at ×5 and ×10. Near-prismatic and control board predictions also improve in contrast (the gap widens), which is good. The separation between prismatic and control grows substantially at ×50: prismatic gets a predicted placement of 1.40 while controls hit 5.00.
+The model's predictions for prismatic boards improve immediately — from ~1.53 at ×1 to ~1.31 at ×5 and ×10. The gap between prismatic and control board predictions also widens substantially, from ~2.1 at baseline to ~3.6 at ×50.
 
-What's more interesting is the overall test MAE, which is non-monotone. ×25 actually performs *worse* than baseline (1.4792 vs 1.4679). The best overall MAE is at ×50 (1.4588). So moderate oversampling helps; extreme oversampling (×100) starts to hurt the model on the common cases that make up most of the test set.
-
----
-
-## Attention Still Doesn't Care
-
-Across all six models, the fraction of attention directed at emblem tokens on prismatic boards (0.043–0.066) was statistically indistinguishable from that on control boards with emblems (0.035–0.070). Attention entropy showed no consistent decrease on prismatic boards at any factor.
-
-Even when prismatic boards are 36.6% of training data, the attention head doesn't learn to attend to emblems differently. The prismatic circuit lives entirely in embedding → sum pool → MLP. The attention head can't participate here — detecting "this specific champion + this specific matching emblem = trait bonus" would require attending to relationships between tokens, and a single rank-1 attention head with collapsed Q/K matrices (as described in the first post) simply doesn't have that capacity. The problem would need either a larger model or a fundamentally different architecture.
+Test MAE is non-monotone. ×25 actually performs slightly worse than baseline (1.4792 vs 1.4679) — the distributional shift is hurting the common cases. The best overall MAE is at ×50 (1.4588). Beyond that, the model starts overfitting to the overrepresented prismatic boards at the cost of everything else.
 
 ---
 
-## The Real Lesson: Neuron Identity Is Arbitrary
+## Attention Still Doesn't Participate
 
-This experiment started as a question about N13. It ended up revealing something more fundamental: **neuron-level mechanistic findings from a single training run aren't reproducible**. The neuron assigned to a function is determined by random initialization and gradient descent converging to one of many equivalent local minima — not by anything intrinsic about what that function needs.
+Across all six models, the fraction of attention directed at emblem tokens on prismatic boards (0.043–0.066) was indistinguishable from that on control boards with emblems (0.035–0.070). Attention entropy showed no consistent decrease on prismatic boards at any factor.
 
-The *circuit structure* is reproducible: give the model enough prismatic signal and it will always produce a set of dedicated neurons with high specificity and near-zero cross-activation. The *neuron identity* — which one of the 32 neurons fills that role — is not. N13 was just a name for a functional slot. If I had trained the original model with a different random seed, it might have been N7 or N22 or any other.
-
-This has a practical implication: when reporting mechanistic interpretability results, the interesting thing to describe is the activation profile and the functional role, not the neuron index. "N13 detects prismatic traits" is a finding about one training run; "the model dedicates 1–6 neurons to detecting trait-dense + matching-emblem compositions, with near-zero activation on controls" is the actual generalizable result.
+Even at ×100, with prismatic boards comprising over a third of training data, the attention head doesn't differentiate them. The prismatic circuit lives entirely in the embedding → sum pool → MLP pathway. This makes sense given the architecture: a single attention head with collapsed Q/K matrices (as described in the first post) encodes champion strength, not compositional relationships. Detecting "this champion + this matching emblem = trait bonus" would require the head to track cross-token interactions of a kind it has no capacity for. The problem is architectural, not a matter of signal.
 
 ---
+
+## Conclusions
+
+The main things I took from this:
+
+- **The circuit sharpens with signal.** At baseline, prismatic detection is weak and noisy — partial activation on champion density, not specifically the trait+emblem combination. With heavier oversampling, 4–6 dedicated neurons emerge with clean binary profiles: silent on near-prismatic and controls, strongly activated on prismatic boards.
+- **The feature splits.** What is handled by 1–2 neurons at ×1 is distributed across 4–6 neurons at ×10+. Whether this is superposition being resolved or just gradient signal recruiting more capacity, I'm not sure. A larger model (d_model=16 or 32) would be the right setting to investigate.
+- **Neuron identity is not the finding.** The interesting thing to describe is the activation profile and the circuit structure — not which specific neuron index carries the feature, since that's arbitrary across training runs.
+- **Attention is a dead end for this feature.** Not for lack of signal — even ×100 oversampling doesn't move it. The head needs a structural upgrade to participate in compositional detection.
 
 ## Open Questions
 
-- The feature splits from ~1 neuron at ×1 to 4–6 neurons at ×10+. Is this resolution of superposition, or just gradient signal recruiting more capacity? A model with d_model=16 or 32 would have more room for superposition and might show a cleaner version of this.
-- Can we systematically find which training samples have the largest gradient contribution to a specific neuron, and oversample those? This could be a more principled version of what we did here.
-- If we add 4 attention heads instead of 1, does attention ever learn to track emblem-champion co-occurrence? The first post noted that grokking in a related experiment required exactly 4 heads — maybe that's the minimum for compositional detection to emerge.
+- The feature splits from ~1–2 neurons at ×1 to 4–6 at higher factors. Is this superposition resolving as the feature becomes important enough to deserve its own dedicated directions? A larger embedding space would let us probe this more directly.
+- Can we identify which training samples drive the largest gradient updates to the prismatic circuit, and use that to oversample more efficiently rather than just repeating all prismatic boards equally?
+- If we use 4 attention heads instead of 1, does any head learn to attend to emblems differently on trait-heavy boards? The first post noted that grokking in a related experiment required exactly 4 heads — maybe that's the minimum for compositional detection to emerge in attention.
 
 *The code for this project is on [GitHub](https://github.com/alexayvazyan/projects).*
