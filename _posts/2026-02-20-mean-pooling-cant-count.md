@@ -71,11 +71,17 @@ The softmax weights sum to 1 by construction. So the attention output is a **con
 
 If all tokens are identical (same embedding), then softmax gives uniform weights 1/N, and the attention output is just v — identical regardless of N. Mean pooling of N copies of v is still v.
 
-But the transformer with mean pooling *did* partially learn to count. What mechanism is responsible — the attention, the FFN, or both? And can we just scale it up until it works?
+But the transformer with mean pooling *did* partially learn to count. This sets up two competing hypotheses:
+
+**Hypothesis 1: It fundamentally can't count.** The derivation above is airtight — softmax normalizes, mean pooling normalizes. The partial counting is just a weak signal leaking through attention pattern variation, not genuine learning. No amount of scaling will fix it.
+
+**Hypothesis 2: It can learn to count by memorizing.** With enough parameters, the transformer could approximate an arbitrarily complex function that effectively memorizes the count for every possible input permutation. The partial counting is real learning, just under-parameterized — and the required parameters would scale exponentially with vocabulary size and sequence length.
+
+Which is it?
 
 ## Isolating the Mechanism
 
-To answer this, I tested every combination on a minimal setup: vocabulary of 5, sequences of length 1-4, target = count non-pad tokens. This gives only 780 possible unique inputs, so memorization is theoretically feasible with enough parameters.
+To start testing, I ran every combination of components on a minimal setup: vocabulary of 5, sequences of length 1-4, target = count non-pad tokens. This gives only 780 possible unique inputs, so memorization is theoretically feasible with enough parameters.
 
 Three types of model, all with mean pooling:
 - **Attention only**: Embed → Multi-head attention + residual + LayerNorm → mean pool → linear head
@@ -108,9 +114,11 @@ Three clear findings:
 
 **3. FFN amplifies the attention signal, but it saturates.** The full transformer (attention + FFN) gets down to MAE 0.21, better than attention alone. The FFN transforms the attention-modified representations to make the count signal more linearly readable. But scaling further doesn't help — 9,097 params and 6,689 params both plateau around MAE 0.21. With only 780 possible inputs, the model could in principle memorize them all, but it can't: the information bottleneck of mean pooling prevents it. The exhaustive test set MAE is actually *worse* than the random test MAE, confirming no memorization is occurring.
 
+This is bad news for Hypothesis 2. The FFN — the component with the most raw capacity for function approximation — contributes nothing on its own. Memorization through the FFN is ruled out. The only counting mechanism is attention, and it seems to hit a ceiling.
+
 ## Does Scaling Break Through?
 
-A natural question: maybe the models above are just too small. If we scale the full transformer aggressively — more layers, more heads, wider dimensions — can it eventually learn to count through mean pooling?
+Hypothesis 2 predicts that with enough parameters, the model should eventually memorize its way to zero error. The models above are small — maybe they just need more capacity. If we scale the full transformer aggressively — more layers, more heads, wider dimensions — can it eventually learn to count through mean pooling?
 
 | Model | Layers | Heads | d_model | FFN neurons | Params | MAE | Pred 1 | Pred 2 | Pred 3 | Pred 4 |
 |-------|--------|-------|---------|-------------|--------|-----|--------|--------|--------|--------|
@@ -124,6 +132,8 @@ A natural question: maybe the models above are just too small. If we scale the f
 No. Going from 6,689 to 664,577 parameters (100x) barely moves the needle — MAE plateaus around 0.19. The predictions are stuck: true count 1 gets predicted ~1.1, true count 4 gets predicted ~3.7. The model consistently compresses the range by about 10% on each end and cannot fix this no matter how many parameters you give it.
 
 For comparison, bag + sum pool solves this perfectly (MAE 0.000) with **65 parameters**.
+
+At this point, Hypothesis 1 looks right — it just can't count. But the wall at 0.19 is suspiciously precise. If the limitation were fundamental, you'd expect a smoother degradation with scale, not a hard floor. Something specific is blocking the model.
 
 ## Where Does the 0.19 Wall Come From?
 
@@ -154,6 +164,8 @@ The transformer + mean pool achieves **MAE 0.000** — perfect counting — once
 The progression is also telling: the full transformer at 2,569 params already gets to 0.040, and at 6,689 params it's at 0.007. The model is genuinely learning to distinguish sequences with different proportions — it just can't distinguish sequences with *identical* proportions, because after mean pooling they are mathematically identical representations.
 
 Meanwhile, bag + mean pool is *worse* on the filtered set (MAE 1.005 vs 0.981 on the full set) because removing the easy cases leaves only the harder ones. And FFN-only remains identical to bag + mean pool, confirming once more that FFN contributes nothing to counting.
+
+So both hypotheses were wrong — and right — in interesting ways. **Hypothesis 1** was wrong: the transformer *can* learn to count through mean pooling, and perfectly so, for any inputs that don't collide after normalization. The attention mechanism genuinely distinguishes different-proportion sequences, not just by leaking a weak signal, but by learning a representation that the FFN + linear head reads perfectly. **Hypothesis 2** was wrong about the mechanism: it isn't exponential memorization of permutations. The model doesn't need to see every permutation — it learns a generalizable function through attention patterns. But Hypothesis 2 was right that the partial counting was real learning, not just noise, and that the model was under-capacity rather than fundamentally limited. The true answer is neither "can't count" nor "memorizes everything" — it's that mean pooling creates a specific, precisely characterizable class of indistinguishable inputs, and the model learns everything else.
 
 ## The Fundamental Issue
 
