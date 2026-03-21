@@ -18,7 +18,7 @@ With mean pooling after the transformer, predictions grouped by champion count l
 
 ![Mean pooling fit](/assets/images/pooling_mean_only.png)
 
-The tails are predicted badly. A board with 3 champions and a board with 10 champions are being treated similarly. The model can't count how many tokens it received.
+The tails are predicted badly. A board with 3 champions and a board with 10 champions are being treated similarly. The model was struggling count how many tokens it received.
 
 Switching to sum pooling fixed it immediately:
 
@@ -27,6 +27,8 @@ Switching to sum pooling fixed it immediately:
 MAE dropped from 1.55 to 1.45, with the tails now tracked properly. But why?
 
 ## A Toy Experiment
+
+My initial hypothesis was that a Softmax Attention + Mean Pool transformer wouldn't be able to count how many tokens were passed in.
 
 To isolate the phenomenon, I built the simplest possible test: a model whose only job is to count how many tokens are in a sequence. Vocabulary of 120, sequences of length 1-10, target = number of non-pad tokens. Four model variants:
 
@@ -37,47 +39,12 @@ To isolate the phenomenon, I built the simplest possible test: a model whose onl
 | Transformer + mean pool | 1.252 |
 | Bag of embeddings + mean pool | 2.507 |
 
-Sum pooling solves counting perfectly — both with and without attention. Mean pooling can't do it at all. The bag of embeddings with mean pooling is the worst — it predicts ~5.5 for everything, completely blind to count. The transformer with mean pooling manages to partially count (MAE 1.25), but poorly, with large variance at every true count.
+Sum pooling solves counting perfectly — both with and without attention. The bag of embeddings with mean pooling is the worst — it predicts ~5.5 for everything, completely blind to count. The transformer with mean pooling manages to partially count (MAE 1.25), but poorly, with large variance at every true count.
 
-This isn't a training issue. The model architecturally cannot represent the count after mean pooling. Here's why.
+This was a relatively surprising result. The toy replica transformer could count, just badly?
 
-## The Derivation
+Naturally this led me to a new hypothesis. If we were seeing some loss reduction compared to baseline, it seemed like the model was doing some sort of memorization across permutations, and the fact that the loss was not 0 was just a result of the fact that the model was not large enough. After all, for 120 vocab and a max of 10 seq lengths, there are just about (>) 10^120 permutations. Maybe we just need to scale the model up?
 
-Consider a sequence of N tokens with embeddings e_1, ..., e_N in R^d.
-
-**Sum pooling** gives us:
-
-    h_sum = e_1 + e_2 + ... + e_N
-
-If every embedding has a constant component c along some dimension (which the bias term in the projection provides), then that dimension of h_sum equals N*c. A linear head reads off N trivially.
-
-**Mean pooling** gives us:
-
-    h_mean = (e_1 + e_2 + ... + e_N) / N
-
-That constant component c becomes N*c/N = c. The count has been divided out. No matter how many tokens, that dimension is always c. The count information is gone.
-
-But wait — the transformer with mean pooling did partially learn to count (MAE 1.25 vs 2.5 for pure bag-of-embeddings). What's going on?
-
-## What Softmax Attention Can Partially Recover
-
-Before mean pooling, the transformer applies self-attention + FFN. Can attention help?
-
-The attention output for token i is:
-
-    attn_i = Σ_j softmax(q_i · k_j / √d)_j · v_j
-
-The softmax weights sum to 1 by construction. So the attention output is a **convex combination** of value vectors — a weighted average. This is inherently count-invariant: whether there are 3 tokens or 10, the output is always a weighted average of the values, bounded within their convex hull.
-
-If all tokens are identical (same embedding), then softmax gives uniform weights 1/N, and the attention output is just v — identical regardless of N. Mean pooling of N copies of v is still v.
-
-But the transformer with mean pooling *did* partially learn to count. This sets up two competing hypotheses:
-
-**Hypothesis 1: It fundamentally can't count.** The derivation above is airtight — softmax normalizes, mean pooling normalizes. The partial counting is just a weak signal leaking through attention pattern variation, not genuine learning. No amount of scaling will fix it.
-
-**Hypothesis 2: It can learn to count by memorizing.** With enough parameters, the transformer could approximate an arbitrarily complex function that effectively memorizes the count for every possible input permutation. The partial counting is real learning, just under-parameterized — and the required parameters would scale exponentially with vocabulary size and sequence length.
-
-Which is it?
 
 ## Isolating the Mechanism
 
@@ -108,7 +75,7 @@ Three types of model, all with mean pooling:
 
 Three clear findings:
 
-**1. FFN alone does nothing.** Even with 17,073 parameters and a 512-wide FFN, the model predicts ~2.3 for every input — identical to bag + mean pool. The per-token FFN sees each token independently *before* mean pooling, so no amount of FFN width helps. This rules out memorization through the FFN.
+**1. FFN alone does nothing.** Even with 17,073 parameters and a 512-wide FFN, the model predicts ~2.3 for every input — identical to bag + mean pool. The per-token FFN sees each token independently *before* mean pooling, so no amount of FFN width helps. This makes perfect intuitive sense.
 
 **2. Attention is the counting mechanism.** Attention-only models get to MAE ~0.45 with just 369 parameters, correctly ordering the counts (1.17, 2.20, 2.92, 3.25). The mechanism is likely that the attention *pattern* itself varies with sequence length — with more tokens, attention entropy increases and self-attention weight decreases. This leaves a count-correlated signature in the residual stream that survives mean pooling.
 
