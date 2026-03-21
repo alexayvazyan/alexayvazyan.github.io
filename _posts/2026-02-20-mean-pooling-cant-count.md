@@ -77,15 +77,16 @@ Three clear findings:
 
 **1. FFN alone does nothing.** Even with 17,073 parameters and a 512-wide FFN, the model predicts ~2.3 for every input — identical to bag + mean pool. The per-token FFN sees each token independently *before* mean pooling, so no amount of FFN width helps. This makes perfect intuitive sense.
 
-**2. Attention is the counting mechanism.** Attention-only models get to MAE ~0.45 with just 369 parameters, correctly ordering the counts (1.17, 2.20, 2.92, 3.25). The mechanism is likely that the attention *pattern* itself varies with sequence length — with more tokens, attention entropy increases and self-attention weight decreases. This leaves a count-correlated signature in the residual stream that survives mean pooling.
+**2. Attention can count, but struggles more than expected.** It seems attention hits a hard wall of ~0.5 MAE, compared to the baseline of 1. Scaling seems to not help it. Another interesting finding, there appears to be some asymetry in predictions (the 4 count predictions avg ~3.2 whereas each other class gets predicted with what looks like a ~0.2 bias towards the centre mass). 
 
-**3. FFN amplifies the attention signal, but it saturates.** The full transformer (attention + FFN) gets down to MAE 0.21, better than attention alone. The FFN transforms the attention-modified representations to make the count signal more linearly readable. But scaling further doesn't help — 9,097 params and 6,689 params both plateau around MAE 0.21. With only 780 possible inputs, the model could in principle memorize them all, but it can't: the information bottleneck of mean pooling prevents it. The exhaustive test set MAE is actually *worse* than the random test MAE, confirming no memorization is occurring.
+**3. FFNs help Attention (Full Transformer) but still fail to break through.** Completing the full transformer circuit immediately yields large gains, taking us down from 0.5 -> 0.21 MAE quickly, but again hitting a wall rather early.
 
-This is bad news for Hypothesis 2. The FFN — the component with the most raw capacity for function approximation — contributes nothing on its own. Memorization through the FFN is ruled out. The only counting mechanism is attention, and it seems to hit a ceiling.
+All of this raises quite a few questions. First, lets rerun a scaling experiment with just the Full Transformer.
+
 
 ## Does Scaling Break Through?
 
-Hypothesis 2 predicts that with enough parameters, the model should eventually memorize its way to zero error. The models above are small — maybe they just need more capacity. If we scale the full transformer aggressively — more layers, more heads, wider dimensions — can it eventually learn to count through mean pooling?
+Our hypothesis predicts that with enough parameters, the model should eventually memorize its way to zero error. The models above are small — maybe they just need more capacity. If we scale the full transformer aggressively — more layers, more heads, wider dimensions — can it eventually learn to count through mean pooling?
 
 | Model | Layers | Heads | d_model | FFN neurons | Params | MAE | Pred 1 | Pred 2 | Pred 3 | Pred 4 |
 |-------|--------|-------|---------|-------------|--------|-----|--------|--------|--------|--------|
@@ -98,19 +99,13 @@ Hypothesis 2 predicts that with enough parameters, the model should eventually m
 
 No. Going from 6,689 to 664,577 parameters (100x) barely moves the needle — MAE plateaus around 0.19. The predictions are stuck: true count 1 gets predicted ~1.1, true count 4 gets predicted ~3.7. The model consistently compresses the range by about 10% on each end and cannot fix this no matter how many parameters you give it.
 
-For comparison, bag + sum pool solves this perfectly (MAE 0.000) with **65 parameters**.
-
-At this point, Hypothesis 1 looks right — it just can't count. But the wall at 0.19 is suspiciously precise. If the limitation were fundamental, you'd expect a smoother degradation with scale, not a hard floor. Something specific is blocking the model.
 
 ## Where Does the 0.19 Wall Come From?
 
-The plateau at MAE 0.19 is suspiciously precise. Can we derive it from first principles?
+The next step is something that, in hindsight, I should have done considerably earlier. Lets actually look at what we are getting wrong.
 
-**Bag + mean pool lower bound.** Mean pooling produces the vector `(1/N) Σ e_i`. Two sequences that have the same token *proportions* but different lengths produce identical mean-pooled representations. For example, the sequence `AB` (2 tokens) and `AABB` (4 tokens) both have 50% A and 50% B — after mean pooling, their representations are identical. The model literally cannot distinguish them, so it must predict the same count for both. We can enumerate all such "proportion collisions" in our toy setup (vocab 5, lengths 1-4) and compute the minimum possible MAE from being forced to predict a single value for each collision class. This gives a theoretical lower bound of **0.124**.
+Things get illuminated so quickly. We see errors immediately in sequences such as `A`, `AA`, `AAA`, `AAAA`. All of these examples predict the exact same score. A quick look at how our transformer operates makes it pretty clear why. Each token will attend the exact same with each other token as it does with itself (there is no positional embedding, else this would be a piece of cake). Therefore, when the softmaxed attended vectors are averaged out, they produce just the same result as if a singular token was passed in. Similar arguments hold aswell for sequences like `AB` and `AABB`.
 
-**Transformer + mean pool lower bound.** The transformer has an advantage: attention patterns vary with sequence length, so it can potentially break some proportion collisions. But not all. Consider the sequences `A`, `AA`, `AAA`, `AAAA` — all tokens are identical, so attention gives uniform weights `1/N` at every position, and mean pooling of N identical post-attention vectors gives the same vector regardless of N. These "all-identical-token" sequences are *truly unbreakable* — no transformer of any depth can distinguish them after mean pooling. Computing the minimum MAE from only these unbreakable collisions gives a theoretical lower bound of **0.076**.
-
-The observed best MAE of 0.19 is above even the bag + mean pool bound of 0.124, suggesting the transformer hasn't fully learned to exploit its attention mechanism for breaking proportion collisions. But is the wall fundamentally about these collisions, or is there some other bottleneck?
 
 ## Removing the Collisions
 
@@ -130,9 +125,6 @@ The transformer + mean pool achieves **MAE 0.000** — perfect counting — once
 
 The progression is also telling: the full transformer at 2,569 params already gets to 0.040, and at 6,689 params it's at 0.007. The model is genuinely learning to distinguish sequences with different proportions — it just can't distinguish sequences with *identical* proportions, because after mean pooling they are mathematically identical representations.
 
-Meanwhile, bag + mean pool is *worse* on the filtered set (MAE 1.005 vs 0.981 on the full set) because removing the easy cases leaves only the harder ones. And FFN-only remains identical to bag + mean pool, confirming once more that FFN contributes nothing to counting.
-
-So both hypotheses were wrong — and right — in interesting ways. **Hypothesis 1** was wrong: the transformer *can* learn to count through mean pooling, and perfectly so, for any inputs that don't collide after normalization. The attention mechanism genuinely distinguishes different-proportion sequences, not just by leaking a weak signal, but by learning a representation that the FFN + linear head reads perfectly. **Hypothesis 2** was wrong about the mechanism: it isn't exponential memorization of permutations. The model doesn't need to see every permutation — it learns a generalizable function through attention patterns. But Hypothesis 2 was right that the partial counting was real learning, not just noise, and that the model was under-capacity rather than fundamentally limited. The true answer is neither "can't count" nor "memorizes everything" — it's that mean pooling creates a specific, precisely characterizable class of indistinguishable inputs, and the model learns everything else.
 
 ## The Fundamental Issue
 
