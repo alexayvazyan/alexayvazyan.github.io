@@ -4,7 +4,7 @@ title: "Softmax attention with mean pooling can't count"
 date: 2026-02-20
 ---
 
-# Softmax attention with mean pooling can't count
+# Softmax attention with mean pooling - can it count?
 
 *A small architectural choice made a surprisingly large difference, and the reason is mathematically clean.*
 
