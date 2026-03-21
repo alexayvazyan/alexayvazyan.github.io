@@ -18,7 +18,7 @@ With mean pooling after the transformer, predictions grouped by champion count l
 
 ![Mean pooling fit](/assets/images/pooling_mean_only.png)
 
-The tails are predicted badly. A board with 3 champions and a board with 10 champions are being treated similarly. The model was struggling count how many tokens it received.
+The tails are predicted badly. A board with 3 champions and a board with 10 champions are being treated similarly. The model was struggling to count how many tokens it received.
 
 Switching to sum pooling fixed it immediately:
 
@@ -77,7 +77,7 @@ Three clear findings:
 
 **1. FFN alone does nothing.** Even with 17,073 parameters and a 512-wide FFN, the model predicts ~2.3 for every input — identical to bag + mean pool. The per-token FFN sees each token independently *before* mean pooling, so no amount of FFN width helps. This makes perfect intuitive sense.
 
-**2. Attention can count, but struggles more than expected.** It seems attention hits a hard wall of ~0.5 MAE, compared to the baseline of 1. Scaling seems to not help it. Another interesting finding, there appears to be some asymetry in predictions (the 4 count predictions avg ~3.2 whereas each other class gets predicted with what looks like a ~0.2 bias towards the centre mass). 
+**2. Attention can count, but struggles more than expected.** It seems attention hits a hard wall of ~0.5 MAE, compared to the baseline of 1. Scaling seems to not help it. Another interesting finding, there appears to be some asymmetry in predictions (the 4 count predictions avg ~3.2 whereas each other class gets predicted with what looks like a ~0.2 bias towards the centre mass). 
 
 **3. FFNs help Attention (Full Transformer) but still fail to break through.** Completing the full transformer circuit immediately yields large gains, taking us down from 0.5 -> 0.21 MAE quickly, but again hitting a wall rather early.
 
@@ -104,7 +104,7 @@ No. Going from 6,689 to 664,577 parameters (100x) barely moves the needle — MA
 
 The next step is something that, in hindsight, I should have done considerably earlier. Lets actually look at what we are getting wrong.
 
-Things get illuminated so quickly. We see errors immediately in sequences such as `A`, `AA`, `AAA`, `AAAA`. All of these examples predict the exact same score. A quick look at how our transformer operates makes it pretty clear why. Each token will attend the exact same with each other token as it does with itself (there is no positional embedding, else this would be a piece of cake). Therefore, when the softmaxed attended vectors are averaged out, they produce just the same result as if a singular token was passed in. Similar arguments hold aswell for sequences like `AB` and `AABB`.
+Things get illuminated so quickly. We see errors immediately in sequences such as `A`, `AA`, `AAA`, `AAAA`. All of these examples predict the exact same score. A quick look at how our transformer operates makes it pretty clear why. Each token will attend the exact same with each other token as it does with itself (there is no positional embedding, else this would be a piece of cake). Therefore, when the softmaxed attended vectors are averaged out, they produce just the same result as if a singular token was passed in. Similar arguments hold as well for sequences like `AB` and `AABB`.
 
 If we look at how we defined the sample space and loss function, we can numerically explain this wall. The sampling mechanism was to first sample a uniform digit from 1 to 4, to decide the seq length. Then, we sample from all the possible permutations in that tier. There are 5 samples possible for l=1, 25 for l=2, 125 for l=3 and 625 for l=4. We can obtain a representative sample by taking 625*4 samples, 2500. Lets assume we predict perfectly for all permutations without internal repetition. For those with repetition, we use the MSE optimal prediction (as our loss function in our experiments was MSE). 
 
@@ -112,8 +112,8 @@ For the single token class (`A`, `AA`, `AAA`, `AAAA`) our representative sample 
 
 For the dual token class (`AB`, `AABB`) our representative sample will have 50 l=2 samples, 6 l=4 samples. MSE optimal -> 2.214. The total error for this class would be 214.16 on a sample of 2500, as there are 10 such members of this class.
 
-Out of our 2500 samples, 156 * 5 + 56 * 10 = 1340 will have error. The sum of these errors would be 518.84. A theoretical minimum MAE of 0.207536, very inline with the empirical findings!
-The results also align with the average predicted result for l=1 being slightly larger and for the average predicted result being shrinked for all other metrics.
+Out of our 2500 samples, 156 * 5 + 56 * 10 = 1340 will have error. The sum of these errors would be 518.84. A theoretical minimum MAE of 0.207536, very much in line with the empirical findings!
+The results also align with the average predicted result for l=1 being slightly larger and for the average predicted result being shrunk for all other metrics.
 
 ## Removing the Collisions
 
@@ -149,6 +149,6 @@ In our TFT model, this meant the embedding's bias term (which is constant across
 
 ## The Practical Takeaway
 
-Exploting your model's architecture to build in important features is a relatively obvious way to inject some bias in to achieve much better loss for the same size of model. What was interesting was the underlying mechanisms that lead to this better loss. Over this deepdive, I've had a number of my hypothesis disproven, and its been a lesson in the value of empircal testing against intuition's limitations.
+Exploiting your model's architecture to build in important features is a relatively obvious way to inject some bias in to achieve much better loss for the same size of model. What was interesting was the underlying mechanisms that lead to this better loss. Over this deepdive, I've had a number of my hypothesis disproven, and its been a lesson in the value of empirical testing against intuition's limitations.
 
 *This observation came up during a [mechanistic interpretability study of a TFT placement prediction transformer](/2026/02/19/tft-mechanistic-interpretability.html). Code on [GitHub](https://github.com/alexayvazyan/projects). This page was initially written by Claude and edited extensively by Alex*
