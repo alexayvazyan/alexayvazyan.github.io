@@ -112,7 +112,7 @@ For the single token class (`A`, `AA`, `AAA`, `AAAA`) our representative sample 
 
 For the dual token class (`AB`, `AABB`) our representative sample will have 50 l=2 samples, 6 l=4 samples. MSE optimal -> 2.214. The total error for this class would be 214.16 on a sample of 2500, as there are 10 such members of this class.
 
-Out of our 2500 samples, 156*5 + 56*10 = 1340 will have error. The sum of these errors would be 518.84. A theoretical minimum MAE of 0.207536, very inline with the empirical findings!
+Out of our 2500 samples, 156 * 5 + 56 * 10 = 1340 will have error. The sum of these errors would be 518.84. A theoretical minimum MAE of 0.207536, very inline with the empirical findings!
 The results also align with the average predicted result for l=1 being slightly larger and for the average predicted result being shrinked for all other metrics.
 
 ## Removing the Collisions
