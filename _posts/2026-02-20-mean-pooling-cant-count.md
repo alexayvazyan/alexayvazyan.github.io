@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Softmax attention with mean pooling can't count"
+title: "Softmax attention with mean pooling - can it count?"
 date: 2026-02-20
 ---
 
@@ -106,6 +106,14 @@ The next step is something that, in hindsight, I should have done considerably e
 
 Things get illuminated so quickly. We see errors immediately in sequences such as `A`, `AA`, `AAA`, `AAAA`. All of these examples predict the exact same score. A quick look at how our transformer operates makes it pretty clear why. Each token will attend the exact same with each other token as it does with itself (there is no positional embedding, else this would be a piece of cake). Therefore, when the softmaxed attended vectors are averaged out, they produce just the same result as if a singular token was passed in. Similar arguments hold aswell for sequences like `AB` and `AABB`.
 
+If we look at how we defined the sample space and loss function, we can numerically explain this wall. The sampling mechanism was to first sample a uniform digit from 1 to 4, to decide the seq length. Then, we sample from all the possible permutations in that tier. There are 5 samples possible for l=1, 25 for l=2, 125 for l=3 and 625 for l=4. We can obtain a representative sample by taking 625*4 samples, 2500. Lets assume we predict perfectly for all permutations without internal repetition. For those with repetition, we use the MSE optimal prediction (as our loss function in our experiments was MSE). 
+
+For the single token class (`A`, `AA`, `AAA`, `AAAA`) our representative sample will have 125 l=1 samples, 25 l=2 samples, etc. The MSE optimal prediction comes out to 1.244. The total error for this class would be 304.68 on a sample of 2500, as there are 5 such members of this class.
+
+For the dual token class (`AB`, `AABB`) our representative sample will have 50 l=2 samples, 6 l=4 samples. MSE optimal -> 2.214. The total error for this class would be 214.16 on a sample of 2500, as there are 10 such members of this class.
+
+Out of our 2500 samples, 156*5 + 56*10 = 1340 will have error. The sum of these errors would be 518.84. A theoretical minimum MAE of 0.207536, very inline with the empirical findings!
+The results also align with the average predicted result for l=1 being slightly larger and for the average predicted result being shrinked for all other metrics.
 
 ## Removing the Collisions
 
@@ -133,16 +141,14 @@ The core problem is compositional:
 1. **Softmax normalizes** — attention weights sum to 1, so the weighted average is bounded regardless of N
 2. **Mean pooling normalizes** — the sum is divided by N
 
-Both operations independently destroy count information. Together, there's no clean path for the count to survive to the output. Attention can leak a partial signal through pattern variation, but the FFN can only amplify what attention provides — it can't create count information from scratch.
+Both operations independently destroy count information. Together, there's no clean path for the count to survive to the output. Attention can leak a partial signal through memorization of permutations, but the FFN can only amplify what attention provides — it can't create count information from scratch.
 
 **Sum pooling** fixes this because the un-normalized sum grows linearly with N. Even if each token's representation is count-invariant after attention, summing N of them produces a vector whose norm scales with N. The linear head after pooling can simply read the norm.
 
-In our TFT model, this meant the embedding's bias term (which is constant across all tokens) became a built-in counter after sum pooling: the bias contributes (0, 0, ..., c, ..., 0) per token, and after summing N tokens, that dimension reads N*c.
+In our TFT model, this meant the embedding's bias term (which is constant across all tokens) became a built-in counter after sum pooling: the bias contributes (0, 0, ..., c, ..., 0) per token, and after summing N tokens, that dimension reads N*c. This is a much more efficient way of storing this count information, as opposed to forcing the model to figure it out itself, which is why we saw such a large improvement.
 
 ## The Practical Takeaway
 
-If your model needs to know how many tokens it received — which is common in set-based prediction tasks where cardinality matters — mean pooling after attention will silently destroy that information. Sum pooling preserves it for free.
+Exploting your model's architecture to build in important features is a relatively obvious way to inject some bias in to achieve much better loss for the same size of model. What was interesting was the underlying mechanisms that lead to this better loss. Over this deepdive, I've had a number of my hypothesis disproven, and its been a lesson in the value of empircal testing against intuition's limitations.
 
-This seems like a small architectural choice, but in our case it was the difference between the model learning one of the two most important features in the data and being blind to it.
-
-*This observation came up during a [mechanistic interpretability study of a TFT placement prediction transformer](/2026/02/19/tft-mechanistic-interpretability.html). Code on [GitHub](https://github.com/alexayvazyan/projects).*
+*This observation came up during a [mechanistic interpretability study of a TFT placement prediction transformer](/2026/02/19/tft-mechanistic-interpretability.html). Code on [GitHub](https://github.com/alexayvazyan/projects). This page was initially written by Claude and edited extensively by Alex*
