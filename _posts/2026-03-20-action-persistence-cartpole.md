@@ -27,7 +27,7 @@ Intuitively, this was easy to explain in hindsight. Cartpole is a game where the
 
 <PLACEHOLDER: describe the key finding from exp8b — the mean absolute survival difference between the two fork actions peaks at around k=15-20 steps after the fork, not at k=1. The causal influence of the initial action choice builds up before it peaks, then decays. Also describe the winner consistency curve — the action that was better at k=1 remains the better action at nearly 100% of forks for the first ~15-20 steps, before dropping toward 0.5 (random chance), which means the initial action's advantage is coherent and directional, not noisy>
 
-![Action persistence — mean absolute survival difference and winner consistency]({{ "/assets/images/action-persistence_exp8b_action_persistence.png" | relative_url }})
+[Action persistence — mean absolute survival difference and winner consistency]({{ "/assets/images/action-persistence_exp8b_action_persistence.png" | relative_url }})
 *<PLACEHOLDER: caption — left panel shows the mean |P(survive k | a=0) - P(survive k | a=1)| peaking around k=15-20, confirming the causal effect takes time to manifest. Right panel shows winner consistency near 1.0 for the first ~15-20 steps, meaning the better action at k=1 is consistently still the better action later — the signal is clean, not noisy>*
 
 ---
