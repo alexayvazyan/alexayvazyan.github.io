@@ -6,8 +6,6 @@ date: 2026-03-20
 
 ## Background
 
-<PLACEHOLDER: 2-3 sentences — frame this as a question about credit assignment: for a discount factor gamma to work, early actions need to receive credit for late outcomes. That requires the action's causal influence to persist long enough for gamma's discount curve to still be non-negligible. This experiment asks: empirically, how long does a single action actually matter in CartPole?>
-
 As part of learning RL, I was playing around in the OpenAI gymnasium trying to implement a training algorithm for CartPole. This is a very simple game with two actions at any given point, move left or move right, with the goal of maintaining a pole vertically balanced for as long as possible. 
 Over the course of training I plugged in some hyperparameters without thinking too much about them, only to find that I could not get my policy to converge to a optimal policy, even after a relatively large amount of training time (at least, relatively large compared to both me and Claude's priors).
 
@@ -17,11 +15,18 @@ Intuitively, this was easy to explain in hindsight. Cartpole is a game where the
 
 ---
 
+## What Gamma Does to the Reward Signal
+
+A sensible starting point might be to just look at the RTG (rewards to go) distribution
+
+![RTG distribution by gamma — violin plot](/assets/images/action-persistence_exp4_rtg_distribution.png)
+*<RTG distributions under a random policy, by gamma. At gamma=0.5, all RTGs cluster between 1-2 — every step looks identical to the advantage estimator. At gamma=0.99, RTGs span 1-60+, giving the actor a differentiable signal. The horizontal lines show the mean and median of each distribution.>*
+
+---
+
 ## Setup
 
 <PLACEHOLDER: describe the fork methodology — from a random starting state, take both action 0 and action 1, then follow random policy for both forks and measure survival (how many steps each fork lasts). No training, no policy gradient, no neural networks. Two experiments: exp8b aggregates across forks (1000 starting states, per-fork measurement), exp8c goes deeper per starting state (200 states, 50 forks each to estimate full survival probability curves)>
-
----
 
 ## How Long Does an Action's Influence Persist?
 
@@ -39,14 +44,7 @@ Intuitively, this was easy to explain in hindsight. Cartpole is a game where the
 ![Action persistence across starting states — curves, peak heights, peak locations](/assets/images/action-persistence_exp8c_persistence_by_state.png)
 *<PLACEHOLDER: caption — left panel shows per-state persistence curves (faint) with mean and IQR band; the peak is consistently around k=10-15 across states. Middle panel shows the distribution of peak survival difference (~0.38 median — action choice matters substantially at peak). Right panel shows peak location distribution concentrated around 10-20 steps, confirming the delayed-peak pattern is a property of CartPole's dynamics, not a measurement artefact>*
 
----
 
-## What Gamma Does to the Reward Signal
-
-<PLACEHOLDER: 2-3 sentences bridging from action persistence to the reward signal — the previous sections showed *when* actions matter (peak at ~10-20 steps). This section shows *why gamma determines whether the training signal can differentiate those steps*. The mechanism: gamma controls the variance of the rewards-to-go (RTG) distribution, which is the only signal the actor receives.>
-
-![RTG distribution by gamma — violin plot](/assets/images/action-persistence_exp4_rtg_distribution.png)
-*<PLACEHOLDER: caption — RTG distributions under a random policy, by gamma. At gamma=0.5, all RTGs cluster between 1-2 — every step looks identical to the advantage estimator. At gamma=0.99, RTGs span 1-60+, giving the actor a differentiable signal. The horizontal lines show the mean and median of each distribution. This is why low gamma fails: the advantage signal is intrinsically compressed regardless of critic quality.>*
 
 ---
 
