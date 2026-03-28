@@ -41,12 +41,22 @@ Intuitively, this was easy to explain in hindsight. Cartpole is a game where the
 
 ---
 
+## What Gamma Does to the Reward Signal
+
+<PLACEHOLDER: 2-3 sentences bridging from action persistence to the reward signal — the previous sections showed *when* actions matter (peak at ~10-20 steps). This section shows *why gamma determines whether the training signal can differentiate those steps*. The mechanism: gamma controls the variance of the rewards-to-go (RTG) distribution, which is the only signal the actor receives.>
+
+![RTG distribution by gamma — violin plot]({{ "/assets/images/action-persistence_exp4_rtg_distribution.png" | relative_url }})
+*<PLACEHOLDER: caption — RTG distributions under a random policy, by gamma. At gamma=0.5, all RTGs cluster between 1-2 — every step looks identical to the advantage estimator. At gamma=0.99, RTGs span 1-60+, giving the actor a differentiable signal. The horizontal lines show the mean and median of each distribution. This is why low gamma fails: the advantage signal is intrinsically compressed regardless of critic quality.>*
+
+---
+
 ## Summary
 
 <PLACEHOLDER: 2-3 bullet points covering:
 - The causal effect of a single action on survival in CartPole peaks ~10-20 steps later, not immediately — the environment's physics takes time to convert an action into an observable outcome difference
 - This is measured purely from a random policy with no training — it is an intrinsic property of CartPole's dynamics
-- The implication for credit assignment: a discount factor gamma must still be non-negligible at k=10-20 for training to work. At gamma=0.9, gamma^15 ≈ 0.20 — 80% of the signal discarded at exactly the horizon where actions matter most>
+- Gamma controls whether training can exploit this: at gamma=0.9, gamma^15 ≈ 0.20 — 80% of the signal discarded at exactly the horizon where actions matter most. The RTG distribution at low gamma is so compressed that even a perfect critic produces near-zero advantages
+- The combination of action persistence curves and RTG distributions tells a unified story: actions matter at k=10-20, and only high gamma preserves enough signal variance at that horizon for learning to occur>
 
 ---
 
