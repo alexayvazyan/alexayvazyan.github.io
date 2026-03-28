@@ -1,16 +1,19 @@
 ---
 layout: post
-title: "<PLACEHOLDER: compelling title — something like 'A Single Action's Shadow: How Long Does Choice Matter in CartPole?'>"
+title: "Hyperparameter tuning in Cartpole and Action Persistence"
 date: 2026-03-20
----
-
-*<PLACEHOLDER: one-sentence hook — e.g. the surprising finding that the effect of a single action on survival probability peaks 10-20 steps later, not immediately, and this was measured without any training at all>*
-
 ---
 
 ## Background
 
 <PLACEHOLDER: 2-3 sentences — frame this as a question about credit assignment: for a discount factor gamma to work, early actions need to receive credit for late outcomes. That requires the action's causal influence to persist long enough for gamma's discount curve to still be non-negligible. This experiment asks: empirically, how long does a single action actually matter in CartPole?>
+
+As part of learning RL, I was playing around in the OpenAI gymnasium trying to implement a training algorithm for CartPole. This is a very simple game with two actions at any given point, move left or move right, with the goal of maintaining a pole vertically balanced for as long as possible. 
+Over the course of training I plugged in some hyperparameters without thinking too much about them, only to find that I could not get my policy to converge to a optimal policy, even after a relatively large amount of training time (at least, relatively large compared to both me and Claude's priors).
+
+Turns out, when using any algorithm for reinforcement learning that is based on discounted future expected rewards, the setting of gamma is very important for a game like CartPole. In particular, increasing this from 0.9 to 0.99 (effectively giving 10x further reach to future rewards) made a dramatic improvement.
+
+Intuitively, this was easy to explain in hindsight. Cartpole is a game where the reward is given continuously as long as the terminal state is not reached. This means that with a gamma value of 0.9, the distribution of "rewards to go" has a very sharp mode at ~10, and almost all rewards to go look the same for any given action decision point during training. One can see how this could really impede efficient training. Additionally, from just watching a few simulations of CartPole, it is clear that sometimes bad moves can have consequences for future states quite distant, and a model can only learn to differentiate these actions as bad if the gamma spans the 'action persistence'. What follows was my attempts to somewhat quantitatively and mechanistically look at these concepts.
 
 ---
 
