@@ -17,16 +17,16 @@ Intuitively, this was easy to explain in hindsight. Cartpole is a game where the
 
 ## What Gamma Does to the Reward Signal
 
-A sensible starting point might be to just look at the RTG (rewards to go) distribution
+A sensible starting point might be to just look at the RTG (rewards to go) distribution over different gammas. The hypothesis is that RTG are compressed to 10 during training, which limits advantage calculations and hence makes gradients rather small.
 
 ![RTG distribution by gamma — violin plot](/assets/images/action-persistence_exp4_rtg_distribution.png)
-*<RTG distributions under a random policy, by gamma. At gamma=0.5, all RTGs cluster between 1-2 — every step looks identical to the advantage estimator. At gamma=0.99, RTGs span 1-60+, giving the actor a differentiable signal. The horizontal lines show the mean and median of each distribution.>*
+*RTG distributions under a random policy, by gamma. At gamma=0.5, all RTGs cluster between 1-2 — every step looks identical to the advantage estimator. At gamma=0.99, RTGs span 1-60+, giving the actor a differentiable signal. The horizontal lines show the mean and median of each distribution.*
 
 ---
 
-## Setup
+## Action persistence
 
-<PLACEHOLDER: describe the fork methodology — from a random starting state, take both action 0 and action 1, then follow random policy for both forks and measure survival (how many steps each fork lasts). No training, no policy gradient, no neural networks. Two experiments: exp8b aggregates across forks (1000 starting states, per-fork measurement), exp8c goes deeper per starting state (200 states, 50 forks each to estimate full survival probability curves)>
+Next, we can take a deeper dive at this idea of a causal horizon between actions and outcomes being long in a game like CartPole.
 
 ## How Long Does an Action's Influence Persist?
 
