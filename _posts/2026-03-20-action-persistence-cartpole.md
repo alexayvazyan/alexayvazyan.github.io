@@ -28,25 +28,29 @@ A sensible starting point might be to just look at the RTG distribution over dif
 
 Next, we can take a deeper dive at this idea of a causal horizon between actions and outcomes being long in a game like CartPole. How exactly does one go about measuring this though? One potential way is to imagine taking a random policy and random state and then measuring the difference in terminal scores for each of the two actions taken. We can identify two limiting cases where either the state is already in a doomed position, where the fork will have little significance on survival. On the other side, we can imagine the state which is perfectly symetrical in the starting position, and again the fork should show little difference. The vast majority of states though (everything in between) should produce a discernable impact on survival when averaged over many trials.
 
+We take N random states. At each state we take T trials. For each trial, we count the steps survived by each fork for each of the two actions possible. We then combine each to create a survival curve for going left, and a survival curve for going right at each state. Finally, we subtract these two survival curves and take the absolute value to form a blue line in our graph.
+
+Note that there will be a bit of noise (even in a symetrical starting point, because we will expect some non zero diff survival function) which will go down as we do more forks per state. 
+
 ![Action persistence — mean absolute survival difference and winner consistency](/assets/images/action-persistence_exp8c_persistence_by_state.png)
-*<PLACEHOLDER: caption — left panel shows the mean |P(survive k | a=0) - P(survive k | a=1)| peaking around k=15-20, confirming the causal effect takes time to manifest. Right panel shows winner consistency near 1.0 for the first ~15-20 steps, meaning the better action at k=1 is consistently still the better action later — the signal is clean, not noisy>*
+*If we are to average across all states, we see that an action will peak in its survival probability effect in around ~12 steps after the action was taken*
 
-Indeed, we observe that the average causal horizon is around 15-20 steps, with the average probability of survival
-
+Indeed, we observe that up until around ~5 steps taken, the vast majority of games show 0 survival difference (too early to make a difference), with this also converging to 0 survival difference if we look far enough into the future (both games are dead). 12 steps into the future is the average distance for peak action impact on survival probability.
 
 
 ---
 
 ## Summary
 
-<PLACEHOLDER: 2-3 bullet points covering:
-- The causal effect of a single action on survival in CartPole peaks ~10-20 steps later, not immediately — the environment's physics takes time to convert an action into an observable outcome difference
-- This is measured purely from a random policy with no training — it is an intrinsic property of CartPole's dynamics
-- Gamma controls whether training can exploit this: at gamma=0.9, gamma^15 ≈ 0.20 — 80% of the signal discarded at exactly the horizon where actions matter most. The RTG distribution at low gamma is so compressed that even a perfect critic produces near-zero advantages
-- The combination of action persistence curves and RTG distributions tells a unified story: actions matter at k=10-20, and only high gamma preserves enough signal variance at that horizon for learning to occur>
+- High gamma is extremely important in training an RL model using discounted future state quality to learn CartPole.
+- This is likely a result of the very unbalanced nature of the distributions of RTG when gamma < 0.9.
+- This unbalanced distribution is likely a product of the fact that in CartPole specifically, actions have a peak causal horizon of 12 steps into the future.
+
+To be honest, the causal horizon analysis seems difficult to generalize to any other problem that is not CartPole. For that reason I find that the RTG distribution finding is probably more relevant to future work. In particular, it would be good to analyze this distribution among other games and contrast if training also greatly improves from balancing this.
 
 ---
 
 ## Open Questions
 
-<PLACEHOLDER: what you'd investigate next — e.g. does the peak location of ~13 steps match the causal horizon estimate of 19 steps from the random policy episode length distribution (exp8/credit mass)? Is the peak location state-dependent in a way that correlates with the pole angle or cart velocity? Does the winner consistency result (near 1.0 for 15+ steps) mean that a very short lookahead (e.g. 15-step MC return) could be sufficient for CartPole, and if so, does that match what low-gamma training actually learns?>
+RTG = Q - V for PPO (the model used in this analysis)
+- Will using GRPO which takes the average of the group instead of V yield a much more balanced RTG distribution and hence much faster convergence to optimal policy?
