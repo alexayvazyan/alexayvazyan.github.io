@@ -28,7 +28,7 @@ A sensible starting point might be to just look at the RTG distribution over dif
 
 Next, we can take a deeper dive at this idea of a causal horizon between actions and outcomes being long in a game like CartPole. How exactly does one go about measuring this though? One potential way is to imagine taking a random policy and random state and then measuring the difference in terminal scores for each of the two actions taken. We can identify two limiting cases where either the state is already in a doomed position, where the fork will have little significance on survival. On the other side, we can imagine the state which is perfectly symetrical in the starting position, and again the fork should show little difference. The vast majority of states though (everything in between) should produce a discernable impact on survival when averaged over many trials.
 
-![Action persistence — mean absolute survival difference and winner consistency](/assets/images/action-persistence_exp8b_action_persistence.png)
+![Action persistence — mean absolute survival difference and winner consistency](/assets/images/action-persistence_exp8c_persistence_by_state.png)
 *<PLACEHOLDER: caption — left panel shows the mean |P(survive k | a=0) - P(survive k | a=1)| peaking around k=15-20, confirming the causal effect takes time to manifest. Right panel shows winner consistency near 1.0 for the first ~15-20 steps, meaning the better action at k=1 is consistently still the better action later — the signal is clean, not noisy>*
 
 Indeed, we observe that the average causal horizon is around 15-20 steps, with the average probability of survival
