@@ -6,8 +6,8 @@ date: 2026-03-20
 
 ## Background
 
-As part of learning RL, I was playing around in the OpenAI gymnasium trying to implement a training algorithm for CartPole. This is a very simple game with two actions at any given point, move left or move right, with the goal of maintaining a pole vertically balanced for as long as possible. 
-Over the course of training I plugged in some hyperparameters without thinking too much about them, only to find that I could not get my policy to converge to a optimal policy, even after a relatively large amount of training time (at least, relatively large compared to both me and Claude's priors).
+As part of learning RL, I was implementing PPO from scratch in the OpenAI gymnasium, training on CartPole. This is a very simple game with two actions at any given point, move left or move right, with the goal of maintaining a pole vertically balanced for as long as possible.
+Over the course of training I plugged in some hyperparameters without thinking too much about them, only to find that I could not get my policy to converge to an optimal policy, even after a relatively large amount of training time (at least, relatively large compared to both me and Claude's priors).
 
 Turns out, when using any algorithm for reinforcement learning that is based on discounted future expected rewards, the setting of gamma is very important for a game like CartPole. In particular, increasing this from 0.9 to 0.99 (effectively giving 10x further reach to future rewards) made a dramatic improvement.
 
@@ -26,7 +26,7 @@ A sensible starting point might be to just look at the RTG distribution over dif
 
 ## Action persistence
 
-Next, we can take a deeper dive at this idea of a causal horizon between actions and outcomes being long in a game like CartPole. How exactly does one go about measuring this though? One potential way is to imagine taking a random policy and random state and then measuring the difference in terminal scores for each of the two actions taken. We can identify two limiting cases where either the state is already in a doomed position, where the fork will have little significance on survival. On the other side, we can imagine the state which is perfectly symetrical in the starting position, and again the fork should show little difference. The vast majority of states though (everything in between) should produce a discernable impact on survival when averaged over many trials.
+Next, we can take a deeper dive at this idea of a causal horizon between actions and outcomes being long in a game like CartPole. How exactly does one go about measuring this though? One potential way is to imagine taking a random policy and random state and then measuring the difference in terminal scores for each of the two actions taken. We can identify two limiting cases where either the state is already in a doomed position, where the fork will have little significance on survival. On the other side, we can imagine the state which is perfectly symmetrical in the starting position, and again the fork should show little difference. The vast majority of states though (everything in between) should produce a discernable impact on survival when averaged over many trials.
 
 We take N random states. At each state we take T trials. For each trial, we count the steps survived by each fork for each of the two actions possible. We then combine each to create a survival curve for going left, and a survival curve for going right at each state. Finally, we subtract these two survival curves and take the absolute value to form a blue line in our graph.
 
