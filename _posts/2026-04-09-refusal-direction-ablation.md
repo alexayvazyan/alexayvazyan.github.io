@@ -181,13 +181,31 @@ The tradeoff is smooth and well-behaved within the working range: KL decreases m
 
 The remaining ~5x gap between Qwen and Gemma may be irreducible, or there may be further gains from using probe-derived directions instead of diff-in-means, or from ablating at only the full-attention layers within the later regime.
 
-The broader takeaway is that the assumption underlying refusal direction ablation — that a single linear direction can be ablated at every layer — does not hold universally. It works on Qwen3-8B (and on the Llama models tested in the original paper), where the probe direction is stable across layers. It fails on Gemma 4, where the probe direction undergoes a sharp rotation midway through the network. Whether this is caused by the hybrid attention pattern, or by some other difference between the models, remains to be tested.
+The broader takeaway is that the assumption underlying refusal direction ablation — that a single linear direction can be ablated at every layer — does not hold universally. It works on Qwen3-8B (and on the Llama models tested in the original paper), where the probe direction is stable across layers. It fails on Gemma 4, where the probe direction undergoes a sharp rotation midway through the network.
+
+---
+
+## Is This Specific to Refusal?
+
+A natural question: is the direction instability something particular about how Gemma 4 represents refusal, or is it a general property of the architecture? To test this, I ran the same direction stability analysis on a completely different feature — truth — using datasets from [Marks & Tegmark (2023), "The Geometry of Truth"](https://arxiv.org/abs/2310.06824).
+
+I trained probes at every layer on two datasets:
+- **Cities**: "The city of Sharjah is in the United Arab Emirates" (true) vs "The city of Sharjah is in China" (false) — 800 train, 200 val
+- **Larger-than**: "Fifty-one is larger than fifty-two" (false) vs "Sixty is larger than thirty-nine" (true) — 800 train, 200 val
+
+![Truth direction stability for cities and larger-than datasets](/assets/images/refusal_gemma4_truth_stability.png)
+*Top row: cities dataset. Bottom row: larger-than dataset. Both show the same structure as refusal — heat close to the diagonal in early layers, consolidating into a more stable block in later layers.*
+
+The pattern looks similar to refusal. Both truth datasets show drifting probe directions in the early layers (heat stays close to the diagonal in the pairwise cosine matrix) followed by a more consolidated representation in the later layers. The adjacent cosine similarity shows periodic dips that coincide with the attention type boundaries.
+
+The truth direction is noisier than refusal — the oscillations in adjacent cosine are larger, and the late-layer block is less cleanly defined. But the overall structure is the same: early instability, late consolidation, with some kind of transition in the same region of the network.
+
+This suggests the direction instability is a **general property of Gemma 4's architecture**, not something specific to refusal. Any technique that assumes a stable linear direction across all layers — steering vectors, activation patching, linear ablation — should expect the same problem on this model regardless of which feature is being targeted.
 
 ---
 
 ## Open Questions
 
-- Is the phase boundary at layer 23 specific to refusal, or does it show up for other linear features too? If Gemma 4 has a general "representation regime change" at this boundary, it would affect any technique that assumes a stable linear direction across layers (steering vectors, activation patching, etc.). This would also help determine whether the hybrid attention pattern is actually the cause.
 - Would training separate SAEs for each regime capture different features?
 - The 31B Gemma model had even worse KL (~20) than the 4B model (~3–6). Does the problem scale with model size, and if so, does the layer-selective fix scale too?
 - Can we identify the phase boundary automatically (e.g., from the pairwise cosine similarity matrix) rather than reading it off a plot?
