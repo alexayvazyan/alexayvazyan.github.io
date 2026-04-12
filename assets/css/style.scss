@@ -1,0 +1,14 @@
+---
+---
+
+@import "jekyll-theme-minimal";
+
+.wrapper {
+  width: 1200px;
+}
+
+@media screen and (max-width: 1280px) {
+  .wrapper {
+    width: auto;
+  }
+}
