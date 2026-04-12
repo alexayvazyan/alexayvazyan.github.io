@@ -25,3 +25,5 @@ As well as being an arguable moral prerogative, I also find the work in the fiel
 - [Linear ablation with rotating representations of refusal](/2026/04/09/refusal-direction-ablation.html) — Replicating refusal direction ablation on Gemma 4 and discovering that the refusal direction isn't stable across layers.
 
 ## Musings
+
+- [Midnight thoughts](/2026/04/12/midnight-thoughts.html) — A running log of whatever my brain chews on while waiting to fall asleep.
