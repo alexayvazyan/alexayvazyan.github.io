@@ -13,7 +13,7 @@ I was a Quant Trader for almost 3 years. I've always had a strong interest in un
 
 ## Learning
 
-- [Can we see features in a TFT placement prediction transformer?](_posts/2026-02-19-tft-mechanistic-interpretability.html) — Intro project to just play around with some rough ideas of mech interp in a domain where I have a good intuition.
+- [Can we see features in a TFT placement prediction transformer?](/2026/02/19/tft-mechanistic-interpretability.html) — Intro project to just play around with some rough ideas of mech interp in a domain where I have a good intuition.
 - [Softmax attention with mean pooling can't count](/2026/02/20/mean-pooling-cant-count.html) — A small architectural choice that silently destroyed one of the most important features in our data.
 - [How does a model's prismatic detection circuit evolve under signal pressure?](/2026/02/27/tft-oversampling-prismatic.html) — Oversampling a rare trait from 1x to 100x and watching the circuit sharpen.
 - [Hyperparameter tuning in Cartpole and action persistence](/2026/03/20/action-persistence-cartpole.html) — Why gamma=0.99 outperforms gamma=0.9, and measuring how long a single action's causal influence persists.
