@@ -52,5 +52,5 @@ To be honest, the causal horizon analysis seems difficult to generalize to any o
 
 ## Open Questions
 
-RTG = Q - V for PPO (the model used in this analysis)
-- Will using GRPO which takes the average of the group instead of V yield a much more balanced RTG distribution and hence much faster convergence to optimal policy?
+Adv = RTG - V for PPO (the model used in this analysis)
+- Will using GRPO which takes the average of the group instead of V yield a much more balanced Adv distribution and hence much faster convergence to optimal policy?
