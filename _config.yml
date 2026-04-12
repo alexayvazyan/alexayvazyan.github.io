@@ -1,3 +1,4 @@
 theme: jekyll-theme-minimal
 title: Alex Ayvazyan
 description: ML research, mechanistic interpretability, and building things that work.
+future: true
