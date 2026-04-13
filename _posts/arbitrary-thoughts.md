@@ -5,50 +5,60 @@ title: "Arbitrary Thoughts"
 
 # Arbitrary Thoughts
 
-*A collection of various thoughts, normally formulated in bed while trying to sleep*
+*A collection of various thoughts, normally formulated in bed while trying to sleep.*
 
 ---
 
-## 1 - Mean Variance Optimization
+## 1 — Mean variance optimization
 
-In the course of my work as a quant trader I encountered the optimization function for mean variance:
+In the course of my work as a quant trader I encountered the mean-variance objective:
 
-O(h) = h_t * mu - gamma * h_t * sigma * h
+```
+O(h) = hᵀμ − γ · hᵀΣh
+```
 
-where h is the proportion vector of holdings across various securities, mu and sigma are the mean and covariance matrix of those securities, and finally gamma is a hyperparameter.
+where `h` is the proportion vector of holdings across various securities, `μ` and `Σ` are the mean return vector and covariance matrix of those securities, and `γ` is a hyperparameter.
 
-Initially it wasn't obvious to me that such a formulation can be equivalent to maximizing sharpe, even though I was told that it was equivalent. I knew that the reason it was normally formulated like this was due to a desire for linear and fast differentiation.
+Initially it wasn't obvious to me that such a formulation could be equivalent to maximizing Sharpe, even though I was told it was. I knew the reason it's normally written this way was a desire for linear and fast differentiation.
 
-Thinking about it more though, if one is to fix the covariance matrix or the mean return vector, optimization maximizes/minimizes the other. In this way, optimizing this function guarantees that you are on the 'efficient frontier' as described in markowitz portfolio theory.
+Thinking about it more though: if you fix the covariance matrix or the mean return vector, the optimizer maximizes/minimizes the other. In that sense, optimizing this objective guarantees you sit on the 'efficient frontier' described in Markowitz portfolio theory.
 
-With gamma = 0, you lie on the point of the frontier furthest from the origin. As gamma approaches infinity, one appraoches the basin of minimum variance. Moving gamma up thus moves you across the efficient frontier, at some point encountering the optimal sharpe point. This intuitively also gives an understanding why gamma should scale hyperbolically. 
+With `γ = 0` you land on the point of the frontier furthest from the origin. As `γ → ∞` you approach the basin of minimum variance. Moving `γ` up thus sweeps you across the efficient frontier, and at some point hits the optimal-Sharpe point. This also gives an intuitive reason why `γ` should scale hyperbolically.
 
-## 2 - 12 balls and 3 weighs
+---
 
-A classic puzzle/brainteaser. You have 12 balls, one of which is a fake that either weighs slightly more or less than all the others. What is the least amount of times you need to use a scale to determine which ball is fake? The answer turns out to be 3.
+## 2 — 12 balls and 3 weighs
 
-The standard way to solve this that almost anyone would take would be to split into cases and just work through all possible paths. If thats all there was to it, it wouldn't be that interesting of a problem. Looking at just the first weighing though, we can see some logic in how we might want to weigh at first. 
+A classic puzzle. You have 12 balls, one of which is a fake that weighs slightly more or less than the others. What is the minimum number of scale-weighings needed to identify the fake? The answer turns out to be 3.
 
-To begin, weighing an uneven amount of balls on either side clearly makes no sense. Our choices at the start are thus either 1-1, 2-2 ... 6-6. It might not be too hard to deduce that 4-4 turns out to be the best, and we can formalize why by taking an information theoretic perspective. 
+The standard way to solve this — and what almost anyone reaches for — is to split into cases and work through each path. If that's all there was to it the problem wouldn't be that interesting. But looking at just the first weighing, we can already see some structure in what we'd want to do.
 
-Originally, there are 24 possible states of our system. 12 for whichever ball is fake, doubled by whether it is heavier or lighter. This is equivalent to saying we have about ~4.6 bits (log_2(24)) of entropy in our system. Weighing 4 balls against 4 effectively removes 1/3 of the possible states, bringing the entropy down by ~1.6 bits.
+To begin, weighing an uneven number of balls on either side clearly makes no sense. Our choices at the start are thus 1-vs-1, 2-vs-2, ..., 6-vs-6. It isn't too hard to deduce that 4-vs-4 is the best, and we can formalize why by taking an information-theoretic perspective.
 
-What intrigued me about this problem was that the information theory perspective seems deceptively useful, as it doesn't really tell us a lot about how to solve the problem. Sure it gives us a greedy algorithm (at each step, do the weighing that reduces the number of possible states by a maximum amount), but this provides pretty minimal insight over just looking at cases, which is essentially what we are still doing.
-
-It would be excellent if we could deduce some upper or lower bounds for the expected entropy reduced from a single weighing. In our example, if we are to keep making moves as good as the first weighing, we would be able to do the puzzle in indeed 3 weighs, as 1.6 * 3 >  total starting entropy of the system. We have no guarantee that this is possible though.
-
-A good first step might be to empirically study the system for n balls, by writing a simple computer program. We want to model an algorithm that takes the choice that maximizes expected information gain, and then give it the worst possible outcome in terms off true information gained. We always assume that there are an equal number of balls on each side, as not doing this gives us 0 information.
+There are 24 possible states of the system: 12 choices for which ball is fake, doubled by whether that ball is heavier or lighter. That's `log_2(24) ≈ 4.6` bits of entropy. A 4-vs-4 weighing effectively removes 1/3 of the possible states, bringing the entropy down by `~1.6` bits.
 
 ![First-weighing option landscape for n=12, 40, 100 — entropy reduction against the number of balls placed on the scale, red dot marks the greedy pick](/assets/images/balls_scale_initial_option_landscape.png)
 
-![Greedy weighings versus n with the log_3(2n) lower bound overlaid, showing the staircase match for n=4 to 100](/assets/images/balls_scale_weighings_vs_n.png)
+What intrigued me about this problem was that the information theory perspective seems deceptively useful: it doesn't really tell us a lot about how to *solve* the problem. Sure, it gives us a greedy algorithm — at each step, do the weighing that reduces the number of possible states by the most — but that's pretty minimal insight over just looking at cases, which is essentially what we're still doing.
+
+It would be excellent if we could deduce some upper or lower bounds for the expected entropy reduced from a single weighing. In our example, if every weighing were as good as the first, we'd be able to do the puzzle in 3 weighs indeed, since `1.6 × 3 > 4.6` bits of starting entropy. But we have no guarantee this is possible.
+
+A good first step is to empirically study the system for `n` balls by writing a simple program. We model an algorithm that takes the choice maximizing expected information gain, and then hand it the worst possible outcome in terms of true information gained. (We always put an equal number of balls on each side — unbalanced weighings give zero information.)
+
+The first thing we notice is that it doesn't seem possible to reduce entropy by more than `log_2(3)` bits in the worst case, regardless of ball count. We can convince ourselves of this by contradiction. Suppose there exists a weighing with `K` possible states where the worst-case outcome gives more than `log_2(3)` bits of information. That is equivalent to saying each outcome leaves strictly fewer than `K/3` surviving states. Since every state produces exactly one of the three outcomes (left down, right down, balanced), the three surviving sets partition the original `K` states, so:
+
+```
+K = N_L + N_R + N_bal < K/3 + K/3 + K/3 = K
+```
+
+a contradiction. So at least one outcome must preserve `≥ K/3` states — i.e., the worst-case reduction is bounded above by `log_2(3)`.
 
 ![Per-step entropy reduction for selected n, dashed line at log_2(3); early steps hug the ceiling, the last step drops](/assets/images/balls_scale_per_step_reduction.png)
 
-The first thing we can notice is that it doesn't seem to be possible to reduce the entropy by more than log_2(3) bits at any given point in the worst case scenario, regardless of ball count. We can convince ourselves that this is true by contradiction. Suppose that the opposite was true, that there exists a weighing at some point with K possible states, such that the worst case scenario gives more than log_2(3) bits of information. This is equivalent to saying that after weighing, there are strictly less than K/3 surviving states for each outcome. Because there are three possibilities when weighing (left side down, right side down, balanced), even if all post-weigh states are mutually exclusive, they would still only be able to cover strictly less than 3*K/3 = K possible states. I.e., there must be less than K possible states to begin with, and we have a contradiction.
+Great. We now have a minimum-weighings function `W_min(n) = ⌈log_3(2n)⌉`. Running the greedy against a worst-case branch for every `n` from 4 to 100 shows we sit on this bound almost everywhere, stepping up exactly where `log_3(2n)` crosses an integer.
 
-Great. We now have a minimum weigh function of W_min(n) = ceil(log(2n) / log(3)), or ceil(log_3(2n)). Running the greedy against a worst-case branch for every n from 4 to 100 shows we sit on this bound almost everywhere, stepping up exactly where log_3(2n) crosses an integer.
+![Greedy weighings versus n with the log_3(2n) lower bound overlaid, showing the staircase match for n=4 to 100](/assets/images/balls_scale_weighings_vs_n.png)
 
-This logic extends a bit further in that, to prevent against the worst case scenario, we ideally want to have K/3 states distributed against each of the 3 possible outcomes of the scales. This can easily show why we cant do something like 13 or 40 balls with 3 or 4 weighings respectively, even though 13 * 2 = 26 < 27 = 3^3, and 40 * 2 = 80 < 81 = 3^4. The proof is not too hard, but its easier with an example. Suppose we have 40 balls, 80 states. We can either do 26 states vs 26 states on the scales, leaving 28 states to the side, or 28 vs 28 and 24 on the side. In either case, we can be left with 28 remaining states after a weigh, which means we won't be able to succeed with 3 more weighs, we will need 4. 
+The logic extends a bit further. To protect against the worst case, we ideally want `K/3` states distributed into each of the three outcomes. This gives a concrete reason why certain cases — like 13 balls in 3 weighings or 40 balls in 4 — aren't doable, even though `13 × 2 = 26 < 27 = 3^3` and `40 × 2 = 80 < 81 = 3^4`. The proof isn't hard, but it's easier to see with an example. Take 40 balls, 80 states. Our first weighing is either 26-vs-26 (28 off) or 28-vs-28 (24 off). Either way, at least one of the three outcome branches surfaces with 28 remaining states, which exceeds `3^3 = 27`, so three more weighings cannot finish the job — we need four.
 
-It seems likely then that the bound of ceil(log_3(2n)) will be met for any number of balls except for a(n) = (3^n - 1)/2, as there is probably sufficient lattitude to divide into 3 groups of roughly equal state space. I don't have a proof for this though.
+It seems likely then that the bound `⌈log_3(2n)⌉` is met for any `n` except `a(n) = (3^n − 1)/2`, as there's probably enough latitude at other `n` to divide the state space into three roughly equal groups. I don't have a proof, though.
