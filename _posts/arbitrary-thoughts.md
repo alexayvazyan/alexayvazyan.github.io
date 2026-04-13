@@ -33,15 +33,17 @@ To begin, weighing an uneven amount of balls on either side clearly makes no sen
 
 Originally, there are 24 possible states of our system. 12 for whichever ball is fake, doubled by whether it is heavier or lighter. This is equivalent to saying we have about ~4.6 bits (log_2(24)) of entropy in our system. Weighing 4 balls against 4 effectively removes 1/3 of the possible states, bringing the entropy down by ~1.6 bits.
 
-It's worth unpacking why 4-4 is the sweet spot, because the shape of the answer ends up generalising. For the first weighing with n=12 the three scale outcomes have state counts (2k, 2k, 24-4k) where k is the number of balls on each side. We want those three numbers as close to equal as possible, because a three-way toss is most informative when it's a 1-in-3-each toss. Plotting entropy reduction against k for n=12, 40, 100 gives a clean concave curve that peaks right around k = 2n/3 balls on the scale:
-
-![First-weighing option landscape for n=12, 40, 100 — entropy reduction against the number of balls placed on the scale, red dot marks the greedy pick](/assets/images/balls_scale_initial_option_landscape.png)
-
 What intrigued me about this problem was that the information theory perspective seems deceptively useful, as it doesn't really tell us a lot about how to solve the problem. Sure it gives us a greedy algorithm (at each step, do the weighing that reduces the number of possible states by a maximum amount), but this provides pretty minimal insight over just looking at cases, which is essentially what we are still doing.
 
 It would be excellent if we could deduce some upper or lower bounds for the expected entropy reduced from a single weighing. In our example, if we are to keep making moves as good as the first weighing, we would be able to do the puzzle in indeed 3 weighs, as 1.6 * 3 >  total starting entropy of the system. We have no guarantee that this is possible though.
 
 A good first step might be to empirically study the system for n balls, by writing a simple computer program. We want to model an algorithm that takes the choice that maximizes expected information gain, and then give it the worst possible outcome in terms off true information gained. We always assume that there are an equal number of balls on each side, as not doing this gives us 0 information.
+
+![First-weighing option landscape for n=12, 40, 100 — entropy reduction against the number of balls placed on the scale, red dot marks the greedy pick](/assets/images/balls_scale_initial_option_landscape.png)
+
+![Greedy weighings versus n with the log_3(2n) lower bound overlaid, showing the staircase match for n=4 to 100](/assets/images/balls_scale_weighings_vs_n.png)
+
+![Per-step entropy reduction for selected n, dashed line at log_2(3); early steps hug the ceiling, the last step drops](/assets/images/balls_scale_per_step_reduction.png)
 
 The first thing we can notice is that it doesn't seem to be possible to reduce the entropy by more than log_2(3) bits at any given point in the worst case scenario, regardless of ball count. We can convince ourselves that this is true by contradiction. Suppose that the opposite was true, that there exists a weighing at some point with K possible states, such that the worst case scenario gives more than log_2(3) bits of information. This is equivalent to saying that after weighing, there are strictly less than K/3 surviving states for each outcome. Because there are three possibilities when weighing (left side down, right side down, balanced), even if all post-weigh states are mutually exclusive, they would still only be able to cover strictly less than 3*K/3 = K possible states. I.e., there must be less than K possible states to begin with, and we have a contradiction.
 
@@ -49,10 +51,4 @@ There's a second way to see the same fact that I like a bit better. The scale ou
 
 Great. We now have a minimum weigh function of W_min(n) = ceil(log(2n) / log(3)), or ceil(log_3(2n)). Running the greedy against a worst-case branch for every n from 4 to 100 shows we sit on this bound almost everywhere, stepping up exactly where log_3(2n) crosses an integer:
 
-![Greedy weighings versus n with the log_3(2n) lower bound overlaid, showing the staircase match for n=4 to 100](/assets/images/balls_scale_weighings_vs_n.png)
-
-The per-step picture is arguably prettier. If you record how many bits the chosen weighing actually buys at each step, the first few steps of any run sit right at the log_2(3) ceiling — we are performing near-perfect ternary splits early — and only the final step falls short, because by then the residual state count isn't a multiple of 3 and a clean third-way split is impossible:
-
-![Per-step entropy reduction for selected n, dashed line at log_2(3); early steps hug the ceiling, the last step drops](/assets/images/balls_scale_per_step_reduction.png)
-
-There are occasional exceptions — some n need one more weigh than the bound suggests, the smallest interesting example being 13 balls. The reason is concrete: with no already-known-genuine ball to pad either pan, the first weighing can only produce state-count triples of the form (2k, 2k, 2n-4k), and for some n no k gives all three piles small enough for the remaining weighings to handle. So the lower bound isn't always achievable, but it's a remarkably good guide — the greedy hits it at all but a handful of values up to 100.
+The per-step picture is arguably prettier. If you record how many bits the chosen weighing actually buys at each step, the first few steps of any run sit right at the log_2(3) ceiling — we are performing near-perfect ternary splits early — and only the final step falls short, because by then the residual state count isn't a multiple of 3 and a clean third-way split is impossible.
