@@ -26,4 +26,4 @@ As well as being an arguable moral prerogative, I also find the work in the fiel
 
 ## Musings
 
-- [Arbitrary thoughts](arbitrary-thoughts.html) — A running log of whatever my brain chews on while waiting to fall asleep.
+- [Arbitrary thoughts](/arbitrary-thoughts.html) — A running log of whatever my brain chews on while waiting to fall asleep.
