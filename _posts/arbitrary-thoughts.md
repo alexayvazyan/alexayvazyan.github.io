@@ -25,6 +25,8 @@ Thinking about it more though: if you fix the covariance matrix or the mean retu
 
 With `γ = 0` you land on the point of the frontier furthest from the origin. As `γ → ∞` you approach the basin of minimum variance. Moving `γ` up thus sweeps you across the efficient frontier, and at some point hits the optimal-Sharpe point. This also gives an intuitive reason why `γ` should scale hyperbolically.
 
+![Efficient frontier for a 5-asset portfolio with the γ sweep marked from 0 (max return) through the max-Sharpe tangency point to γ→∞ (min variance)](/assets/images/mean_variance_efficient_frontier.png)
+
 ---
 
 ## 2 — 12 balls and 3 weighs
