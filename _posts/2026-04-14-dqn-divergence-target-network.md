@@ -1,29 +1,30 @@
 ---
 layout: post
-title: "Why DQN needs a target network, visualised on the smallest possible toy"
+title: "DQN Divergence without a frozen target approximator"
 date: 2026-04-14
 ---
 
-# Why DQN needs a target network, visualised on the smallest possible toy
-
-*A 3-weight network on a 2-state MDP is enough to see TD bootstrapping diverge. Drawing the set of initial weights that blow up turns out to be geometrically clean — and also exposes a second, completely different divergence mode that the target network does nothing about.*
+# DQN Divergence without a frozen target approximator. 
 
 ---
 
 ## Background
 
-Somewhere in the middle of writing my own DQN from scratch, I hit the part of the textbook that says *"and of course we need a target network, otherwise the bootstrap target is non-stationary and the update can diverge"*. That's a satisfying sentence until you actually try to reproduce the divergence. I went to write a quick demo for myself and immediately had to think about it for longer than I expected.
+I was working through programming Pong to be played via RL using DQN. I gave it a pause after realizing that my macbook probably wouldn't have enough compute to be able to produce something that could actually win. Fast forward to getting a 5090, I tried again and was able to ~100x my training, which quickly let me see some problems. Even with all the training steps, my model wasn't learning better, and having read the origin DQN paper from Google Deepmind, I had a suspicion of what the problem was. Indeed, I plotted Q values over training and saw them clearly exploding to the millions, it was clear that my training was diverging. I knew the DQN paper mentioned that one must freeze the target network during training, only periodically syncing it, and it seems like this was what I needed to do now. And yep, as expected, training began to improve immediately. But I felt a bit unsatisfied. I didn't feel like I really developed an intuition as to why the Q values were diverging, nor how freezing a target network helped remedy it. So I set up some demos to try and illuminate the problem.
 
 The plan was the cleanest possible setup I could come up with:
 
 - Two states S1 and S2, with S1 → S2 → terminal and reward 0 on every transition. The true value is trivially 0 everywhere.
-- A tiny value network `V(s)` with a one-hot state, n hidden units, no biases, scalar output. That's `3n` weights total: `2n` in the input matrix `W` and `n` in the readout `v`.
-- Only ever sample the (S1 → S2) transition. Never sample the S2 → terminal one. The bootstrap target for S1 is `r + γ·V(S2)`.
+- A tiny value network `V(s)` with a one-hot state, n hidden units, no biases, scalar output. That's `3n` weights total: `2n` in the input matrix `W` and `n` in the readout `v`. For simplicity, I mostly looked at the case where `n=1`.
 - Randomly initialise and run the semi-gradient TD update. Check how often it blows up.
 
-The intuition I was trying to demonstrate is the one everyone cites: `V(S1)` and `V(S2)` share the readout `v`, so a gradient step aimed at `V(S1)` also nudges `V(S2)`, which is the very thing the target was computed from. That shared-weight coupling is the bootstrap-feedback loop, and the target network's job is to break it by freezing `V(S2)` between updates.
+## Working a toy example by hand
 
-That's the *story*. What I actually saw when I ran it was a bit more interesting.
+Having read the Deadly Triad paper (https://arxiv.org/pdf/1812.02648), this setup was similar to the example given by Tsitsikilis and Van Roy in 1997, which I first worked through by hand. I knew that one of the keys to causing this divergence was the random nature of the sampling. Obviously in our dynamical environment above, we expect to hit S1 and S2 in equal proportion. But if we bootstap, we will certainly sample gradient updates from both states in a non sequential order.
+
+If we fix `n=1` neuron and also fix the first two weights to be `w1 = 1` and `w2 = 2`, we can see that when we sample from S1, `V(S1) = w, V(S2) = 2w`. Our loss if we thus sample from just S1 will be `L = lr * (2γw - w)`, which will actually be a diverging step for w if gamma is greater than 0.5. If we sample from S2 next, we will end up moving w towards 0 and the entire system will definitely converge. But this is the intuition, if we sample sufficiently 'unfairly' (which just happens by chance when we bootstrap) in a system where our values are approximated in a way such that the parameters we tune can affect downstream value calculations, our q values can diverge. This is the deadly triad identified in the paper.
+
+Now back to the program. No fixed weights here. One step closer to the true problem, but less practical to work through by hand.
 
 ---
 
