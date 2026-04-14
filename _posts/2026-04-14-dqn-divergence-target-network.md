@@ -183,12 +183,4 @@ So the interval is doing real work in the bootstrap-dominated regime (longer = m
 
 ---
 
-## Open questions
-
-- With ReLU or tanh instead of linear, both the bilinear-overshoot and bootstrap-feedback terms change. I'd guess the basic picture survives (target network still specifically removes the `γ·w1·w2`-analog term), but the divergence set's *shape* probably becomes piecewise. Worth drawing.
-- In real DQN you have a replay buffer, off-policy actions, and ε-greedy exploration, all of which change the expected gradient direction. I'd bet the reason target networks are empirically so much more important there than in this toy is that those mechanisms enrich the ways `w1·w2`-analog can become persistently negative along the training trajectory — but that's speculation I haven't tested.
-- `target_update_interval → ∞` monotonically improved things in the anti-correlated regime in my sweep. I'd expect this to reverse once the target gets stale enough that tracking the optimal value is the limiting factor — but in this 2-state toy there's no optimal to chase beyond zero, so that tradeoff is invisible. Would need a richer MDP to see the other side of the curve.
-
----
-
 *Code lives under [rl-testing/divergence_demo](https://github.com/alexayvazyan/projects) in my projects repo. This page was drafted by Claude from my outline of the investigation and then edited by me.*
