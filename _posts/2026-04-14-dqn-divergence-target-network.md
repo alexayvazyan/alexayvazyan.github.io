@@ -1,10 +1,10 @@
 ---
 layout: post
-title: "DQN Divergence without a frozen target approximator"
+title: "DQN divergence without a frozen target network"
 date: 2026-04-14
 ---
 
-# DQN Divergence without a frozen target approximator. 
+# DQN divergence without a frozen target network
 
 ---
 
