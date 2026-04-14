@@ -30,22 +30,28 @@ Now back to the program. No fixed weights here. One step closer to the true prob
 
 ## The setup, concretely
 
-With one-hot `S1 = e_1`, `S2 = e_2` and a linear activation, the network is literally:
+The network has two pieces of weights: an input matrix `W` of shape `(n, 2)` that maps the one-hot state to the hidden layer, and a readout vector `v` of length `n` that maps the hidden layer to the scalar output. With a linear activation the value function is just
 
 ```
-V(S1) = v · W[:,0]       # dot product of readout with column 0
-V(S2) = v · W[:,1]       # dot product of readout with column 1
+V(s) = v · (W s)
 ```
 
-Call column 0 `w1` and column 1 `w2`. The TD error is
+Because `s` is a one-hot vector, `W s` simply picks out one column of `W`. Concretely, for state S1 we take column 0; for state S2 we take column 1. Calling those columns `w1` and `w2`,
+
+```
+V(S1) = v · w1
+V(S2) = v · w2
+```
+
+The shared piece is `v` — it appears in both expressions. That's the only path by which a gradient on `V(S1)` can move `V(S2)`. The TD error is
 
 ```
 δ = V(S1) - γ·V(S2) = v·w1 - γ·v·w2
 ```
 
-and the semi-gradient update (treating the target as constant, as in DQN) moves only `v` and `w1`, because `∂V(S1)/∂w2 = 0`. We only ever visit S1 → S2, so `w2` never receives a gradient at all. That last bit matters — it's the "skewed sampling" half of the deadly triad.
+The semi-gradient update (treating the target as constant, as in DQN) takes the gradient of `δ²/2` only through the `V(S1)` term, so it moves `v` and `w1` and leaves `w2` alone (`∂V(S1)/∂w2 = 0`). And because we only ever visit the S1 → S2 transition, `w2` never receives a gradient from anywhere else either. That last bit matters — it's the "skewed sampling" half of the deadly triad. The "function approximation" half is the shared `v`.
 
-No biases, no non-linearity at first (I'll come back to ReLU), no replay buffer. Just one transition, one gradient step, repeat.
+No biases, no non-linearity, no replay buffer. Just one transition, one gradient step, repeat.
 
 ---
 
@@ -102,9 +108,9 @@ With i.i.d. standard-normal init and `n=4`, `E[f] = 0` and `std(f) ≈ 2`, while
 Once I had the algebra, the fix for the demo was obvious: let me initialise `w1` and `w2` with a chosen correlation instead of independently. Setting `ρ = corr(w1, w2) = -1` gives `f < 0` reliably and should expose the bootstrap regime cleanly.
 
 ![Divergence probability vs gamma for two init regimes](/assets/images/dqn-divergence_exp5_gamma.png)
-*Fraction of seeds that diverge as γ sweeps from 0 to 1. Left: anti-correlated init (`ρ=-1`) at `lr=0.2` — the classic bootstrap regime. Divergence rises monotonically with γ, and the target network removes a consistent chunk of it. Right: i.i.d. init (`ρ=0`) at `lr=0.3` — the overshoot regime. Divergence still rises with γ but the target network does nothing, because the failure mode isn't a moving target.*
+*Fraction of seeds that diverge as γ sweeps from 0 to 1, every other hyperparameter held fixed (`lr=0.2`, `n=4`, `init_scale=1.2`). Left: anti-correlated init (`ρ=-1`) — the bootstrap regime. Divergence rises monotonically with γ, and the target network removes a consistent chunk of it. Right: i.i.d. init (`ρ=0`) — much less divergence overall at the same settings, and the target-net curve sits right on top of the no-target curve. The gap between the two panels is exactly the piece of the contraction rate that depends on `γ·w1·w2`.*
 
-The left panel is the scenario every RL textbook is implicitly picturing: divergence probability grows with γ (more bootstrap weight → more target movement), and the target network helps. The right panel is the scenario I stumbled into first by accident: even at very high γ, the divergence that shows up is from the learning rate overshooting the bilinear instability of `V = v·w`, and freezing the target is irrelevant.
+The left panel is the scenario every RL textbook is implicitly picturing: divergence probability grows with γ (more bootstrap weight → more target movement), and the target network helps. The right panel is what I stumbled into first by accident: with the columns drawn independently, the `γ·w1·w2` term averages to zero, very little diverges at all, and whatever does diverge is overshoot from the learning rate — which the target network has no opinion on.
 
 The `(γ, lr)` heatmap tells the same story more densely:
 
@@ -115,22 +121,6 @@ The `(γ, lr)` heatmap tells the same story more densely:
 *Same sweep with i.i.d. init. The difference panel is almost perfectly white. The divergence that appears here is the bilinear-overshoot mode, which the target network can't touch.*
 
 I found this distinction genuinely useful for internalising what the target network does. It's not "stabilises DQN" in some general sense — it specifically removes one additive term in the contraction rate, the one that couples `V(S1)` through `V(S2)`. Any other instability your algorithm has, the target network is going to walk right past.
-
----
-
-## One seed, up close
-
-With `ρ=-1`, `lr=0.2`, `n=4`, there are seeds where the no-target run explodes and the target-net run survives from the exact same initialisation:
-
-![Single-seed comparison, anti-correlated init](/assets/images/dqn-divergence_exp1_anticorrelated.png)
-*Same seed, same initial weights, same data. Left: without a target network, `V(S1)` and `V(S2)` shoot to ±10^5 in about 5 steps. Right: with a target network updated every 50 steps, both values oscillate but stay bounded. Each target refresh gives `V(S1)` a fresh fixed regression target, which it has time to chase before the target moves again.*
-
-Divergence is always fast when it happens — the dynamics are multiplicative, so once the contraction rate goes past 1, you're doubling each step. There's no long gradual drift to watch. You either stay in the stable basin or you hit 10^6 within a few dozen steps.
-
-For the i.i.d. case, the same plot makes the "target network can't save you" story concrete: both panels diverge in nearly the same number of steps.
-
-![Single-seed comparison, iid init](/assets/images/dqn-divergence_exp1_iid.png)
-*i.i.d. init, `lr=0.3`. Both the no-target and target-net runs diverge within ~5 steps from the same initialisation.*
 
 ---
 
@@ -168,9 +158,9 @@ If you wanted a one-image explanation of why DQN is unstable without a target ne
 The target update interval is usually treated as a hyperparameter to tune. On this toy I can actually see what it's controlling:
 
 ![Divergence fraction vs target network update interval](/assets/images/dqn-divergence_exp3_target_interval.png)
-*Divergence fraction as the target network update interval varies from 1 (≡ no target) to 1000. Blue: anti-correlated regime — longer intervals monotonically reduce divergence, which matches the "freeze the target to break the feedback loop" story. Orange: i.i.d. regime — the curve is essentially flat, because the target network is addressing the wrong failure mode.*
+*Divergence fraction as the target network update interval varies from 1 (≡ no target) to 1000. Same `γ=0.99`, `lr=0.2`, `n=4`, `init_scale=1.2` in both panels — only `ρ` changes. Blue: anti-correlated (`ρ=-1`) — longer intervals monotonically reduce divergence, which matches the "freeze the target to break the feedback loop" story. Orange: i.i.d. (`ρ=0`) — much less divergence to begin with, and the interval barely moves the needle. The dashed lines are the corresponding `no target` baselines.*
 
-So the interval is doing real work in the bootstrap-dominated regime (longer = more stable, at least in this toy), and zero work in the overshoot regime. Which suggests the answer to *"how often should I refresh the target network"* depends on which kind of instability your actual environment is closer to — which isn't generally something you can know a priori, but is something you can probably diagnose empirically if you have the patience.
+So the interval is doing real work when the bootstrap term is active, and essentially nothing when it isn't. Which suggests the answer to *"how often should I refresh the target network"* depends on whether your actual environment has the anti-aligned-column structure that makes the γ·w1·w2 term bite — something you can probably diagnose empirically if you have the patience, but can't really know a priori.
 
 ---
 
