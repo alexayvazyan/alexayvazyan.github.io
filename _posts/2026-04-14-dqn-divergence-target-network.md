@@ -10,7 +10,7 @@ date: 2026-04-14
 
 ## Background
 
-I was working through programming Pong to be played via RL using DQN. I gave it a pause after realizing that my macbook probably wouldn't have enough compute to be able to produce something that could actually win. Fast forward to getting a 5090, I tried again and was able to ~100x my training, which quickly let me see some problems. Even with all the training steps, my model wasn't learning better, and having read the origin DQN paper from Google Deepmind, I had a suspicion of what the problem was. Indeed, I plotted Q values over training and saw them clearly exploding to the millions, it was clear that my training was diverging. I knew the DQN paper mentioned that one must freeze the target network during training, only periodically syncing it, and it seems like this was what I needed to do now. And yep, as expected, training began to improve immediately. But I felt a bit unsatisfied. I didn't feel like I really developed an intuition as to why the Q values were diverging, nor how freezing a target network helped remedy it. So I set up some demos to try and illuminate the problem.
+I was working through programming Pong to be played via DQN. I paused the project after realising my MacBook probably didn't have the compute to produce something that could actually win. Fast forward to getting a 5090: I tried again and ~100x'd my training, which quickly let me see some problems. Even with all the extra steps, my model wasn't learning any better, and having read the original DQN paper from Google DeepMind I had a suspicion of what the problem was. Sure enough, I plotted Q values over training and saw them clearly exploding to the millions — training was diverging. The DQN paper mentioned that one must freeze the target network during training, only periodically syncing it, and that sounded like exactly the fix I needed. As expected, training began to improve immediately. But I felt a bit unsatisfied. I didn't feel like I'd developed an intuition for why the Q values were diverging in the first place, nor for how freezing a target network actually helps. So I set up some demos to try and illuminate the problem.
 
 The plan was the cleanest possible setup I could come up with:
 
@@ -20,17 +20,17 @@ The plan was the cleanest possible setup I could come up with:
 
 ## Working a toy example by hand
 
-Having read the Deadly Triad paper (https://arxiv.org/pdf/1812.02648), this setup was similar to the example given by Tsitsikilis and Van Roy in 1997, which I first worked through by hand. I knew that one of the keys to causing this divergence was the random nature of the sampling. Obviously in our dynamical environment above, we expect to hit S1 and S2 in equal proportion. But if we bootstap, we will certainly sample gradient updates from both states in a non sequential order.
+Having read the [Deadly Triad paper](https://arxiv.org/pdf/1812.02648), I noticed this setup was similar to the example given by Tsitsiklis and Van Roy in 1997, which I first worked through by hand. One of the keys to causing the divergence was the random nature of the sampling. Obviously in our dynamical environment above we expect to hit S1 and S2 in equal proportion. But if we bootstrap, we'll certainly sample gradient updates from both states in a non-sequential order.
 
-If we fix `n=1` neuron and also fix the first two weights to be `w1 = 1` and `w2 = 2`, we can see that when we sample from S1, `V(S1) = w, V(S2) = 2w`. Our loss if we thus sample from just S1 will be `L = lr * (2γw - w)`, which will actually be a diverging step for w if gamma is greater than 0.5. If we sample from S2 next, we will end up moving w towards 0 and the entire system will definitely converge. But this is the intuition, if we sample sufficiently 'unfairly' (which just happens by chance when we bootstrap) in a system where our values are approximated in a way such that the parameters we tune can affect downstream value calculations, our q values can diverge. This is the deadly triad identified in the paper.
+If we fix `n=1` and pin the input weights to `w1 = 1` and `w2 = 2`, leaving only the readout `v` to learn, then `V(S1) = v` and `V(S2) = 2v`. Sampling just from S1, the semi-gradient update is `Δv = lr · (2γv − v)`, which is a diverging step for `v` if `γ > 0.5`. If we sample from S2 next, we move `v` back toward 0 and the system definitely converges. But that's the intuition: if we sample sufficiently "unfairly" (which happens by chance when we bootstrap) in a system where the parameters we tune can affect downstream value calculations, our Q values can diverge. This is the deadly triad identified in the paper.
 
-Now back to the program. No fixed weights here. One step closer to the true problem, but less practical to work through by hand.
+Now back to the program — no fixed weights this time. One step closer to the real problem, but less practical to work through by hand.
 
 ---
 
 ## The setup, concretely
 
-The network has two pieces of weights: an input matrix `W` of shape `(n, 2)` that maps the one-hot state to the hidden layer, and a readout vector `v` of length `n` that maps the hidden layer to the scalar output. With a linear activation the value function is just
+The network has two sets of weights: an input matrix `W` of shape `(n, 2)` that maps the one-hot state to the hidden layer, and a readout vector `v` of length `n` that maps the hidden layer to the scalar output. With a linear activation the value function is just
 
 ```
 V(s) = v · (W s)
@@ -166,7 +166,7 @@ So the interval is doing real work when the bootstrap term is active, and essent
 
 ## Summary
 
-- On a 2-state, 3n-weight toy with bootstrapping from a biased sample, I wanted to reproduce DQN divergence. The textbook mechanism — shared weights making the bootstrap target move — is real, but with i.i.d. random init it's typically *not* what actually blows up first. What blows up first is bilinear-overshoot instability from the learning rate.
+- I wanted to reproduce DQN divergence on a 2-state, 3n-weight toy with bootstrapping from a biased sample. The textbook mechanism — shared weights making the bootstrap target move — is real, but with i.i.d. random init it's typically *not* what actually blows up first. What blows up first is bilinear-overshoot instability from the learning rate.
 - Writing out the contraction rate cleanly separates the two: without a target net the rate is `1 - α·(‖v‖² + ‖w1‖² - γ·w1·w2)`; with a target net it's `1 - α·(‖v‖² + ‖w1‖²)`. The target network's effect is one specific term: `γ·w1·w2`.
 - That term only matters when `w1·w2 < 0`, i.e. when the state columns are anti-aligned. Initialising with `corr(w1, w2) = -1` reliably exposes the bootstrap regime, and in that regime the target network measurably reduces divergence probability.
 - Drawing the divergence set in `(w1, w2, w3)`-space reveals that the "safe" region isn't a ball around the origin — it's a band around `w1 = γ·w2`, thinning as `|w3|` grows. Small weights aren't automatically safe; small-and-correlated-the-right-way weights are.
