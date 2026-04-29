@@ -1,6 +1,7 @@
 ---
 layout: post
 title: "Arbitrary Thoughts"
+permalink: /arbitrary-thoughts.html
 ---
 
 # Arbitrary Thoughts
