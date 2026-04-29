@@ -24,7 +24,10 @@ As well as being an arguable moral prerogative, I also find the work in the fiel
 ## Research
 
 - [Linear ablation with rotating representations of refusal](/2026/04/09/refusal-direction-ablation.html) — Replicating refusal direction ablation on Gemma 4 and discovering that the refusal direction isn't stable across layers.
+- [Geometry of speed and size across multimodal stimulus in Gemma 4 31B](/2026/04/29/geometry-speed-size-gemma4-31b.html) — Clean curved manifolds for physical scalars, causally steerable, but compositional use (computing momentum) collapses to chance — likely a single-pass bandwidth limit.
+- [Dynamic scaling of hyperparameters during RL training of Pong](/2026/04/29/dynamic-hyperparameter-scaling-pong.html) — Reading convergence/divergence signals online and adjusting target-sync, learning rate, epsilon, and gamma on the fly instead of committing to a fixed schedule.
 
 ## Musings
 
 - [Arbitrary thoughts](/arbitrary-thoughts.html) — A running log of whatever my brain chews on while waiting to fall asleep.
+- [Representations on an entropy axis](/representations-entropy-tree.html) — A framing for where human concepts, LLM features, and mechanistic interpretability sit on the same compression tree.
