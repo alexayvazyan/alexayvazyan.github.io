@@ -16,7 +16,7 @@ As well as being an arguable moral prerogative, I also find the work in the fiel
 ## Learning
 
 - [Can we see features in a TFT placement prediction transformer?](/2026/02/19/tft-mechanistic-interpretability.html) — Intro project to just play around with some rough ideas of mech interp in a domain where I have a good intuition.
-- [Softmax attention with mean pooling can't count](/2026/02/20/mean-pooling-cant-count.html) — A small architectural choice that silently destroyed one of the most important features in our data.
+- [Softmax attention with mean pooling can it count](/2026/02/20/mean-pooling-cant-count.html) — A surprisingly insightful deep dive into whether soft max + mean pooling can actually count number of tokens.
 - [How does a model's prismatic detection circuit evolve under signal pressure?](/2026/02/27/tft-oversampling-prismatic.html) — Oversampling a rare trait from 1x to 100x and watching the circuit sharpen.
 - [Hyperparameter tuning in Cartpole and action persistence](/2026/03/20/action-persistence-cartpole.html) — Why gamma=0.99 outperforms gamma=0.9, and measuring how long a single action's causal influence persists.
 - [DQN divergence without a frozen target network](/2026/04/14/dqn-divergence-target-network.html) — Three weights and two states is enough to see bootstrap-feedback divergence, and drawing the set of diverging initialisations turns out to have a clean geometric shape.
