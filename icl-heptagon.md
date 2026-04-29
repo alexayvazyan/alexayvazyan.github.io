@@ -28,6 +28,39 @@ The prompt has three parts:
 2. 21 demonstrations of the form `After X: Y\n`, where `Y = words[(idx(X) + 1) mod 7]`, shuffled.
 3. A query: `After {word}:`
 
+A complete `direct`-mode prompt looks like this (header on, query word `dragon`, gold answer `forest`):
+
+```
+Cycle: apple -> mountain -> violin -> dragon -> forest -> window -> river -> apple (repeats).
+
+After window: river
+After mountain: violin
+After dragon: forest
+After river: apple
+After violin: dragon
+After apple: mountain
+After forest: window
+After mountain: violin
+After dragon: forest
+After window: river
+After forest: window
+After apple: mountain
+After river: apple
+After violin: dragon
+After dragon: forest
+After window: river
+After mountain: violin
+After violin: dragon
+After apple: mountain
+After river: apple
+After forest: window
+After dragon:
+```
+
+Notice the literal pair `After dragon: forest` appears in the demos. In the `direct` mode the model can answer correctly by retrieving any line whose left-hand side matches the query — which is the pure-copy baseline that all later modes are designed to remove.
+
+The header is optional (controlled by `--no_header`); we ran with and without and accuracy was unchanged. The cross-model sweep used `n_reps=3` (each of the 7 words appears 3 times on the left), giving 21 demo lines.
+
 Three conditions per prompt:
 
 - **baseline** — plain English sentences mentioning the word, no ICL demos. Controls for the model's pretrained word geometry.
@@ -135,22 +168,103 @@ A subspace-geometry distinction worth flagging: Gemma 2 2B/9B and Llama 3B keep 
 
 ## Phase 3 — The deduction wall
 
-If the model has formed this clean cyclic ring, does it actually *use* it for compositional reasoning? Specifically — can a model that solves `direct` (next-successor demos) at 95-100% also solve `mixed` (demos use random ±2, ±3 relations, requiring it to reconstruct the cycle and apply +1)?
+If the model has formed this clean cyclic ring, does it actually *use* it for compositional reasoning? Specifically — can a model that solves `direct` (next-successor demos) at 95-100% also solve a variant where the literal pair `(qw, qw+1)` never appears in any demo, so the answer must be deduced rather than copied?
 
 Clean no.
 
-| Mode | Demos show | Best top-1 across all models | Chance |
+### The six modes
+
+Six modes, all with the same gold answer (the +1 successor of the query word). They differ only in what relation the demos exhibit:
+
+| Mode | Demo template | Query | Cognitive demand |
 |---|---|---|---|
-| `direct` | +1 | 93-100% | 14.3% |
-| `backward` | -1 | ≤21% | 14.3% |
-| `k2` | +2 only | ≤8% | 14.3% |
-| `k3` | +3 only | ≤8% | 14.3% |
-| `mixed` | random {±2, ±3} per fact | ≤8% | 14.3% |
-| `twoahead` | demos +1, query asks +2 | ≤8% | 14.3% |
+| `direct` | `After X: Y` (Y = X+1) | `After {qw}:` | Pure copy — the line `After {qw}: {qw+1}` literally appears |
+| `backward` | `Before X: Y` (Y = X−1) | `After {qw}:` | Single inversion |
+| `k2` | `Two after X: Y` (Y = X+2) | `After {qw}:` | Compose +2 → +1 (mod 7) |
+| `k3` | `Three after X: Y` (Y = X+3) | `After {qw}:` | Compose +3 → +1 |
+| `mixed` | random offset per fact from {±2, ±3} | `After {qw}:` | Reconstruct the full cycle, then +1 |
+| `twoahead` | `After X: Y` (Y = X+1) | `Two after {qw}:` | Compose +1 with itself |
 
-Most cells are *below* chance — models are systematically wrong, not random. They pattern-match the demo's stated answer (e.g. on `k2` they emit +2, not +1). An instruction-prefix sweep (5 prefaces × 4 models) gave modest lifts on instruct models but never crossed 36%. The single preface that hurt the most was `gauss_euler` ("think like Gauss / Euler about modular arithmetic") — abstract framings consistently degrade performance. (This recurs in Phase 5.)
+Concretely, for query word `dragon` (gold `forest`, since dragon → forest in the cycle), the demos look like:
 
-Read straight up: the models that ace `direct` are *copying*, not doing modular composition. The ring is consistent with the local-pattern-matching task they're solving, not with a learned cyclic structure they can compose over.
+```
+direct           backward         k2                       k3
+─────────────    ─────────────    ─────────────────────    ──────────────────────
+After violin:    Before violin:   Two after violin:        Three after violin:
+  dragon           apple            forest                   window
+After dragon:    Before dragon:   Two after dragon:        Three after dragon:
+  forest           violin           window                   river
+After mountain:  Before mountain: Two after mountain:      Three after mountain:
+  violin           apple            dragon                   forest
+...              ...              ...                      ...
+After dragon:    After dragon:    After dragon:            After dragon:
+```
+
+The point: in every mode except `direct`, the literal pair `After dragon: forest` is **never** in the demos. The query syntax (`After dragon:`) and the demo syntax (`Two after ...:` / `Before ...:` / etc.) don't match. The model can't answer by retrieving a matching line — it has to synthesize.
+
+For `mixed`, each of the 21 demo lines independently picks a random offset from {+2, +3, −2, −3}, so a single prompt looks like:
+
+```
+Two before window: violin
+Three after apple: dragon
+Two after river: violin
+Three before mountain: window
+Two after dragon: window
+...
+After dragon:
+```
+
+To answer correctly the model has to (a) parse "K after/before X: Y" as "Y = X ± K", (b) collect enough constraints to reconstruct the 7-cycle, and (c) emit X+1 for the query word.
+
+For `twoahead`, the demos show +1 ("After violin: dragon") but the query asks +2 ("Two after dragon:") — the model has to compose the +1 it has just absorbed with itself.
+
+### Results
+
+Top-1 accuracy across 7 models, 140 queries per cell. Chance = 0.143.
+
+```
+                              direct    k2     k3   back   mixed  twoah
+gemma-2-2b                     0.936  0.007  0.036  0.064  0.121  0.021
+gemma-2-9b                     1.000  0.000  0.000  0.029  0.036  0.000
+Llama-3.2-3B                   1.000  0.000  0.000  0.079  0.079  0.000
+Llama-3.2-3B-Instruct          1.000  0.000  0.000  0.214  0.064  0.000
+Qwen2.5-3B                     1.000  0.000  0.000  0.050  0.064  0.000
+pythia-2.8b                    1.000  0.064  0.043  0.007  0.143  0.000
+gemma-4-E4B (broken control)   0.129  0.136  0.143  0.136  0.129  0.107
+```
+
+Most deduction cells are *below* chance — models are systematically wrong, not random. They pattern-match the demo's stated answer: on `k2` they emit +2 (`Two after dragon: window` → predict `window`), not +1 (`forest`). On `backward` they pick up the inverted relation only weakly, and only with instruct tuning (Llama-Instruct at 21.4%). Composition modes (`k2`, `k3`, `twoahead`) sit at floor for every model.
+
+The Gemma 4 E4B row is the calibration control: at 13-14% across every mode (including `direct`), it confirms that 14.3% really is the floor when the model can't do the task at all.
+
+### Instruction prefaces
+
+Could prompting fix this? Tested 5 prefaces × 4 models. The prefaces, verbatim:
+
+- **`cycle_hint`** — "These 7 words (apple, mountain, violin, dragon, forest, window, river) form a hidden cycle of length 7. Use the facts below to deduce the ordering, then answer the final query."
+- **`gauss_euler`** — "Think like Gauss or Euler. The 7 words form a cyclic group of order 7. Reason about modular arithmetic on the cycle to deduce the answer."
+- **`step_by_step`** — "Reason carefully step by step about the cyclic ordering of the 7 words before producing the answer. Compose offsets where needed."
+- **`anti_copy`** — "Do NOT copy from the lines below. The facts use offsets like 'Two after' or 'Three before' — they do NOT directly state the +1 successor. Deduce the cycle, then apply +1 to the query word."
+- **`explicit_task`** — "Task: from the facts below, deduce the cyclic ordering of the 7 words {apple, mountain, violin, dragon, forest, window, river}. Each fact states a relation of the form 'K after X: Y' meaning Y is K positions after X in the cycle. After deducing the cycle, answer the query."
+
+Best per model on the deduction modes (chance = 0.143):
+
+| Model | best preface | back | mixed | k2 | k3 | twoahead |
+|---|---|---|---|---|---|---|
+| Gemma 2 2B-it | `explicit_task` | 20.7% | 16.4% | 16.4% | 17.1% | 0.7% |
+| Llama 3.2 3B-Instruct | `cycle_hint` | **36.4%** | 12.9% | 8.6% | 0.0% | 2.9% |
+| Qwen 2.5 3B-Instruct | `explicit_task` | 34.3% | **24.3%** | 2.1% | 3.6% | 6.4% |
+| Gemma 2 9B base | (any) | ≤5% | ≤14% | ≤1% | ≤2% | 0% |
+
+Three readings:
+
+- **Prefaces help only instruct models.** Gemma 2 9B base is inert to all of them. Whatever instruction-following circuitry is doing here, it's tuned in by IT, not pretrained.
+- **Concrete framings beat abstract framings.** `cycle_hint` and `explicit_task` win. `gauss_euler` actively *hurts* — Llama-Instruct backward drops from 21.4% (no preface) to 12.1% with `gauss_euler`. Telling a model to "think like Gauss" is worse than saying nothing.
+- **`step_by_step` is flat.** The probe scores the immediate next token; the model can't write out reasoning if you only read one token. CoT-aware scoring is one of the open follow-ups.
+
+The single best deduction signal in the entire preface experiment is Qwen-Instruct + `explicit_task` on `mixed` = 24.3% — a real lift, but far from solving. Composition modes (k2/k3/twoahead) stay near floor under every preface.
+
+Read straight up: the models that ace `direct` are *copying*. The ring is consistent with the local-pattern-matching task they're solving, not with a learned cyclic structure they can compose over.
 
 ---
 
@@ -209,7 +323,25 @@ The deduction failure from Phase 3 now has a sharper read. Models *can* use the 
 
 ## Phase 5 — The closed +2 chain ceiling
 
-The cleanest possible deductive cyclic ICL: 7 demos of `Two after X: Y` only, with `gcd(2, 7) = 1` so the chain is fully closed and deterministic. Query asks +1 — correct answer requires composing +2 four times mod 7. 12 models × 4 prefaces × 2 query styles × 35 trials each.
+The cleanest possible deductive cyclic ICL. Use a single relation (+2) with `gcd(2, 7) = 1`, so 7 facts close the chain and uniquely determine the cycle. Single relation, no offset-mixing, fully deterministic. Query asks +1 — to answer, the model must compose +2 four times (4·2 = 8 ≡ 1 mod 7).
+
+A complete prompt looks like:
+
+```
+Two after apple: violin
+Two after violin: forest
+Two after forest: river
+Two after river: mountain
+Two after mountain: dragon
+Two after dragon: window
+Two after window: apple
+
+After apple:                    → gold = mountain   (apple +1 = mountain)
+```
+
+Sweep: 12 models × 4 prefaces × 2 query styles ("After {qw}:" vs "One after {qw}:") × 7 query words × 5 demo-shuffle seeds = 280 trials per model.
+
+The new preface tested at this phase is `compose_hint`, verbatim: *"The facts below all use the relation 'Two after X: Y' (a +2 step in a hidden 7-cycle). Since gcd(2,7)=1, these +2 steps fully determine the cycle. To answer the query, you may need to compose multiple +2 steps (four +2 steps equal one +1 step, since 8 mod 7 = 1)."* This is the strongest possible spoon-feeding short of giving the answer outright — it states the exact arithmetic the model needs to do.
 
 Best top-1 per model (chance = 0.143):
 
@@ -244,19 +376,6 @@ What it does *not* rule out:
 - That different model families form the ring through different mechanisms (induction-head copy vs something else). Gemma 4's uniform failure suggests architecture-or-training-data matters; the sweep doesn't yet say which.
 - That the ring is the only causally-relevant geometry. Qwen 2.5 3B solves with a different geometry, which is its own thread.
 - That the deduction wall is fundamental rather than a property of in-context-only computation. CoT-generation accuracy with `explicit_task` preface is the obvious follow-up.
-
----
-
-## What's next
-
-In rough order:
-
-1. **Replicate Phase 4 (patching + PC-k decomposition) on Llama 3.2 3B, Pythia 2.8B, Gemma 2 9B.** Pythia 2.8B is the sharpest test because its ring and identity sit in *orthogonal* subspaces — the cleanest possible test of the PC1-PC2-causality claim.
-2. **Reverse patching: `mixed → direct`.** Does `mixed` produce *any* coherent ring position at L=16, or just noise? Tells us whether the deduction failure is "no ring position formed" or "wrong ring position formed."
-3. **Hybrid demos.** Closed +2 chain plus a single +1 fact. Does one anchor unlock the ring?
-4. **Gemma 4 attention / induction-head probe.** Cleanest differential signal in the thread. Why does this entire model family fail?
-5. **CoT-generation scoring.** First-token scoring forecloses CoT. Scoring the parsed final answer of a 100-token generation distinguishes "latent but unreachable" from "absent."
-6. **SAE feature decoding on the ring layers.** Gemma Scope covers all Gemma 2 layers. Once the ring is localized, decoding what the 7 axes correspond to is the natural mech-interp endpoint of this thread.
 
 ---
 
