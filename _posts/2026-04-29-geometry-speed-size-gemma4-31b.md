@@ -14,7 +14,7 @@ date: 2026-04-29
 
 This is part of a pair of probes I've been running on Gemma 4 31B-it: one on perceived **speed** of a translating square across a sequence of frames ([gemma4-speed-probe](https://github.com/alexayvazyan)), and one on perceived **size** of a stationary square in a single frame ([gemma4-size-probe](https://github.com/alexayvazyan)). Both projects use the same scaffold: render simple synthetic stimuli, cache residual stream activations across the layer stack, look at the geometry of the variable's representation, and try causal interventions to confirm what the geometry is telling us.
 
-The motivation was Jaehoon Lee's [geometry of relativity](https://arxiv.org/) work, which framed scalar representations in vision-language models as low-dimensional manifolds with structure that the rest of the network can read. I wanted to test whether that picture held for Gemma 4 31B in particular, and whether it extended from "read off a scalar" to "do something with the scalar."
+The motivation came from recent geometry-of-relativity work framing scalar representations in vision-language models as low-dimensional manifolds with structure that the rest of the network can read. I wanted to test whether that picture held for Gemma 4 31B in particular, and whether it extended from "read off a scalar" to "do something with the scalar."
 
 ---
 
@@ -22,7 +22,7 @@ The motivation was Jaehoon Lee's [geometry of relativity](https://arxiv.org/) wo
 
 The speed stimulus is a sequence of N frames showing a black square translating horizontally on a grey canvas. The continuous variable is `dx`, the per-frame displacement. I cache the residual stream at the final image-token positions, sweep `dx`, do PCA across the manifold of (dx-binned) activations.
 
-What falls out is the same shape Jaehoon found on Gemma 2: a curved arc through the top principal components, ordered monotonically with `dx`. The ordering is preserved layer by layer through a clear window in the middle of the network. Earlier layers have not yet computed the scalar; later layers begin to project it onto language-aligned directions and the geometry rotates into something less neatly recoverable.
+What falls out is the same shape that's been observed on Gemma 2: a curved arc through the top principal components, ordered monotonically with `dx`. The ordering is preserved layer by layer through a clear window in the middle of the network. Earlier layers have not yet computed the scalar; later layers begin to project it onto language-aligned directions and the geometry rotates into something less neatly recoverable.
 
 ![Gemma 4 31B-it speed manifold at L=30, six rotated views of the 3D PCA. The arc structure is visible from several angles: stationary stimuli cluster off to one side, and the moving stimuli sweep through a curved trajectory ordered by dx (per-frame displacement, colored).](/assets/images/gemma4_31b_speed_manifold_L30_panel.png)
 *Speed manifold at L=30. Six rotated views of the top-3 PCA. Stationary stimuli (small dark markers) sit at one end; moving stimuli sweep through a curved trajectory ordered by dx.*
