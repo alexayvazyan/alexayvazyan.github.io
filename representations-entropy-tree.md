@@ -32,7 +32,7 @@ This has a limit, however. Compress too much and again, you end up reducing the 
 
 ![A right triangle whose hypotenuse is the vertical axis: the y-axis is compression / information loss and horizontal width is tractability. Tractability is zero at the Laplacian root at the bottom and at maximal compression at the top, peaking in the middle. An arrow along the upper leg points toward pure noise; an arrow along the lower leg points toward too information dense.]({{ site.baseurl }}/assets/images/representations-entropy-tree_tractability-triangle.png){: .diagram}
 
-And every theoretical physicist that's any good knows six or seven different theoretical representations for exactly the same physics, and knows that they're all equivalent, and that nobody's ever going to be able to decide which one is right at that level. But he keeps them in his head, hoping that they'll give him different ideas for guessing. - Richard Feynman
+"And every theoretical physicist that's any good knows six or seven different theoretical representations for exactly the same physics, and knows that they're all equivalent, and that nobody's ever going to be able to decide which one is right at that level. But he keeps them in his head, hoping that they'll give him different ideas for guessing." - Richard Feynman
 
 ---
 
