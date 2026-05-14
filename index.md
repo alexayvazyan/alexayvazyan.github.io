@@ -4,9 +4,8 @@ layout: default
 
 # Hey, I'm Alex
 
-I was a Quant Trader for almost 3 years. I've always had a strong interest in understanding why things happen, both in the realm of the physical but particularly in the realm of the mind. Naturally, I think this has fueled my predisposition towards machine learning. I've been fortunate that this skillset has been highly relevant at my work as a quant trader, but increasingly the world provides me signal that my skillset can directly be harnessed to contribute to models that will change the future, for better or for worse. 
-
-As well as being an arguable moral prerogative, I also find the work in the field of "Artificial Intelligence" to be interesting, and these pages document my learning process and thoughts as I expand my horizons in this domain.
+I was a Quant Trader for almost 3 years. I've always had a strong interest in understanding why things happen, both in the realm of the physical but particularly in the realm of the mind. Naturally, I think this has fueled my predisposition towards machine learning. I've been fortunate that this skillset has been highly relevant at my work as a quant trader, but increasingly the world provides me signal that my skillset can directly be harnessed to contribute to models that will change the future.
+I also find the work in the field of "Artificial Intelligence" to be interesting, and these pages document my learning process and thoughts as I expand my horizons in this domain.
 
 
 [GitHub](https://github.com/alexayvazyan) | [Site](https://alexayvazyan.github.io)
@@ -23,12 +22,12 @@ As well as being an arguable moral prerogative, I also find the work in the fiel
 
 ## Research
 
-- [The ICL Heptagon — cross-model sweep, causal patching, and the deduction wall](/icl-heptagon.html) — 13-model sweep, three-phase layer geometry, cross-task activation patching localizing the ring as causal at onset (PC1-PC2 carry 97% of donor-leak at L=16 in Gemma 2 2B), and the ~28% ceiling on the cleanest deductive variant.
+- [The ICL Heptagon — cross-model sweep, causal patching, and the deduction wall](/icl-heptagon.html) — In context learning representations of manifolds -> inducing a heptagon with random nouns.
 - [Linear ablation with rotating representations of refusal](/2026/04/09/refusal-direction-ablation.html) — Replicating refusal direction ablation on Gemma 4 and discovering that the refusal direction isn't stable across layers.
-- [Geometry of speed and size across multimodal stimulus in Gemma 4 31B](/2026/04/29/geometry-speed-size-gemma4-31b.html) — Clean curved manifolds for physical scalars, causally steerable, but compositional use (computing momentum) collapses to chance — likely a single-pass bandwidth limit.
+- [Geometry of speed and size across multimodal stimulus in Gemma 4 31B](/2026/04/29/geometry-speed-size-gemma4-31b.html) — Clean curved geometry for physical scalars, causally steerable, but compositional use (computing momentum) collapses to chance — likely a single-pass bandwidth limit.
 - [Dynamic scaling of hyperparameters during RL training of Pong](/2026/04/29/dynamic-hyperparameter-scaling-pong.html) — Reading convergence/divergence signals online and adjusting target-sync, learning rate, epsilon, and gamma on the fly instead of committing to a fixed schedule.
 
 ## Musings
 
-- [Arbitrary thoughts](/arbitrary-thoughts.html) — A running log of whatever my brain chews on while waiting to fall asleep.
+- [Arbitrary thoughts](/arbitrary-thoughts.html) — Random running log.
 - [Representations on an entropy axis](/representations-entropy-tree.html) — A framing for where human concepts, LLM features, and mechanistic interpretability sit on the same compression tree.
