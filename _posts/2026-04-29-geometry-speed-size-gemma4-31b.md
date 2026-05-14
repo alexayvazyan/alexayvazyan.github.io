@@ -14,11 +14,9 @@ date: 2026-04-29
 
 This is part of a pair of probes I've been running on Gemma 4 31B-it: one on perceived **speed** of a translating square across a sequence of frames ([gemma4-speed-probe](https://github.com/alexayvazyan)), and one on perceived **size** of a stationary square in a single frame ([gemma4-size-probe](https://github.com/alexayvazyan)). Both projects use the same scaffold: render simple synthetic stimuli, cache residual stream activations across the layer stack, look at the geometry of the variable's representation, and try causal interventions to confirm what the geometry is telling us.
 
-The motivation came from recent geometry-of-relativity work framing scalar representations in vision-language models as low-dimensional manifolds with structure that the rest of the network can read. I wanted to test whether that picture held for Gemma 4 31B in particular, and whether it extended from "read off a scalar" to "do something with the scalar."
-
 ---
 
-## Speed: clean manifold, clean steering
+## Speed: clean arc, clean steering
 
 The speed stimulus is a sequence of N frames showing a black square translating horizontally on a grey canvas. The continuous variable is `dx`, the per-frame displacement. I cache the residual stream at the final image-token positions, sweep `dx`, do PCA across the manifold of (dx-binned) activations.
 
@@ -93,31 +91,3 @@ A few observations that support this:
 
 ---
 
-## Where this leaves the project
-
-I've paused the momentum extension while I think about how to test the bandwidth hypothesis directly. The cleanest version would be:
-
-**Step 1.** Confirm via patching that the size manifold *is* being read by the arithmetic head when the task is "what is `s²`" (single scalar, single op). This is the easiest version of compositional use and should work. If it doesn't, the diagnosis is wrong.
-
-**Step 2.** Patch the size representation from a clean run into a momentum run, and see whether accuracy recovers. If yes, the bottleneck is extraction-under-load, not extraction in general.
-
-**Step 3.** Try the explicit two-pass version: first prompt asks the model to emit `s` and `dx` from the frame as numbers; second prompt feeds those numbers back and asks for the product. If this works cleanly, the bottleneck is confirmed to be single-pass density, and the natural next question is whether the same model can do the task with intermediate hidden-state rollovers (a kind of recurrence) rather than full text decoding.
-
-The broader bet is that this isn't a Gemma-specific failure. Any current-generation VLM that has to extract two scalars and combine them in a single pass should hit the same wall, and the wall should move outward roughly with parameter count. The clean way to test this would be to run the same momentum probe on Gemma 4 4B, 12B, and 31B and check whether the failure mode is severity-graded or qualitatively different. My guess is severity-graded, with the 31B model getting closest to ceiling but not crossing it.
-
----
-
-## Connection to the broader research arc
-
-This sits next to the [ICL deduction failure work](/) and the [refusal-direction rotation work](/2026/04/09/refusal-direction-ablation.html) as another instance of the same general pattern: models have clean low-dimensional representations of relevant features, but the *use* of those features in compositional downstream tasks is fragile in ways that the geometry alone doesn't predict. You can't tell, from looking at a clean refusal direction, whether ablating it will break the model. You can't tell, from looking at a clean size manifold, whether the model will be able to *use* size in a calculation. The geometry is necessary but not sufficient.
-
-The thing I want to land on, eventually, is a story about which kinds of compositional uses are bandwidth-limited (single-pass extraction of multiple scalars) versus which are more deeply broken (compositional ICL deduction at chain length 2+, where my [closed-chain sweep](/) shows even the cleanest setup caps at ~28% accuracy). The momentum failure looks like the former. I think it's separable from the latter.
-
----
-
-## Open questions
-
-- Does patching `s` from a clean cache into a momentum-prompt forward pass restore accuracy?
-- Does the bandwidth bottleneck scale predictably with parameter count, or is it a step function?
-- Is there an architectural prediction here — that wider residual streams (more dim) should buy more simultaneous slots, all else equal?
-- Does the same failure pattern hold when the two scalars come from two different modalities (e.g., size from image, displacement from text)? My current setup mostly mixes them; cleanly separating could isolate where the binding fails.
