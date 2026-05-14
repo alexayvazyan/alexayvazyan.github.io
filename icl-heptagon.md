@@ -16,9 +16,9 @@ A consolidated writeup of the heptagon thread, covering the original cross-model
 
 ---
 
-## Phase 1 — Task setup and the original observation
+## Task setup and the original observation
 
-### The task
+### Prompting
 
 Seven single-token English nouns with no semantic ordering: `apple, mountain, violin, dragon, forest, window, river`. Each tokenizes to one token (with a leading space) in every model tested. Define a modular-7 successor rule over them in a hidden order — treat word `i` as the predecessor of word `(i + 1) mod 7`.
 
@@ -91,7 +91,7 @@ On Gemma 2 2B base, at layers 16-20, the 7 word centroids arrange themselves int
 
 ---
 
-## Phase 2 — Cross-model sweep
+## Cross-model sweep
 
 Same task, ran across 13 model variants spanning four families and four parameter scales (124M → 9B). All base models below; instruct variants discussed at the end of the section.
 
@@ -132,14 +132,6 @@ Same task, ran across 13 model variants spanning four families and four paramete
 ![Ring radius (cyclic) vs shuffled control across models. Llama 3.2 3B and Gemma 2 9B sit 2-3x above shuffled. Pythia 2.8B sits at 1.85 vs ~1.8 — angular order is 7/7 but the points scatter radially in PC1-PC2.]({{ site.baseurl }}/assets/images/icl_manifold_ring_radius.png)
 *Even among 7/7 models the ring tightness varies widely. Llama 3.2 3B and Gemma 2 9B sit cleanly above shuffled; Pythia 2.8B is angular-only — its identity structure lives in PC4+ rather than PC1-PC2.*
 
-### The Qwen kill-case
-
-The single most informative result in the sweep is **Qwen 2.5 3B**: 100% top-1 on the cyclic task, 18% on shuffled (so it genuinely learns the rule), peak angular order 5/7, ring radius 3.54 vs shuffled 2.22 — its centroids sit on a ring of roughly the same geometric quality as Gemma 2 2B's, but they aren't arranged in cycle order around it.
-
-Compare to Llama 3.2 3B: same parameter count, same 100% accuracy, similar ring quality — but 7/7 cyclic order. Both models compress the 7 words onto a circle. Only one of them does so in the order dictated by the task.
-
-**Qwen kills the hypothesis that "the model encodes the successor rule as a cyclic ring" is a necessary consequence of solving the task.** Qwen is solving at 100% with a circular geometry that isn't aligned to the cycle. The cycle sits on a different subspace — or a different mechanism — that PC1-PC2 at this layer doesn't expose. Candidate mechanisms: a higher-dimensional mapping, a direct induction-head copy from the demonstrations, or a non-geometric indexing scheme. The same point applies (more weakly) to GPT-2 small at 87% with no ring at all.
-
 ### Within-family scaling
 
 Pythia 1.4B → Pythia 2.8B gives a clean comparison: 54% accuracy and no ring at 1.4B → 98% accuracy and 7/7 order at 2.8B. Scale crosses both the task-solving threshold and the ring-formation threshold somewhere between 1.4B and 2.8B *within this family*. But at comparable scale, Llama 3.2 3B and Gemma 2 2B form geometrically tighter rings (radius 3.75-5.75) than Pythia 2.8B (1.85). Scale is a necessary condition within a family, not the only factor determining ring quality across families.
@@ -152,7 +144,7 @@ I also ran four instruct variants (Gemma 2 2B-IT, Gemma 2 9B-IT, Llama 3.2 3B-In
 
 ### The Gemma 4 anomaly
 
-All three Gemma 4 dense models tested (E2B, E4B, 31B) fail this task at chance (14-21% top-1). Same lab as Gemma 2, newer generation. Something in Gemma 4's pretraining (data mix, attention pattern, or architecture) destroys the inductive capability that Gemma 2 2B/9B both had. This is the strongest single-model anomaly in the sweep and the cleanest mechanistic target.
+All three Gemma 4 dense models tested (E2B, E4B, 31B) fail this task at chance (14-21% top-1). Same lab as Gemma 2, newer generation. Something in Gemma 4's pretraining (data mix, attention pattern, or architecture) destroys the inductive capability that Gemma 2 2B/9B both had. 
 
 ### Phase structure across layers
 
@@ -166,11 +158,9 @@ A subspace-geometry distinction worth flagging: Gemma 2 2B/9B and Llama 3B keep 
 
 ---
 
-## Phase 3 — The deduction wall
+## The deduction wall
 
 If the model has formed this clean cyclic ring, does it actually *use* it for compositional reasoning? Specifically — can a model that solves `direct` (next-successor demos) at 95-100% also solve a variant where the literal pair `(qw, qw+1)` never appears in any demo, so the answer must be deduced rather than copied?
-
-Clean no.
 
 ### The six modes
 
@@ -268,9 +258,9 @@ Read straight up: the models that ace `direct` are *copying*. The ring is consis
 
 ---
 
-## Phase 4 — Causal patching localizes the ring
+## Phase 4 — Causal patching 
 
-If the ring at L16-20 is real, is it doing causal work, or is it a downstream byproduct? The decisive experiment: cross-task activation patching.
+If the ring at L16-20 is real, is it doing causal work, or is it a downstream byproduct? 
 
 **Setup.** Capture the last-token residual from `direct(qw)` at layer L. Transplant into `mixed(qw)` at the same layer. Three conditions: baseline (no patch), same-word patch, wrong-word donor patch (donor ≠ recipient). 140 trials per layer on Gemma 2 2B.
 
