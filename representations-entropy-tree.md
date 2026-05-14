@@ -30,12 +30,16 @@ Starting from the root at the most information dense point, compression generall
 
 This has a limit however. Compress too much and again, you end up reducing the degree to which information can be tractable. Why? Noise. Think about a video, or a piece of text. What happens as you keep compressing it? Generally, it stays interpretable up to a point (for a video this limit is ~99.9% bit compression, for english language its typically quoted at around ~50%), after which it becomes somewhat indistinguishable from random noise - there is no signal that can be recovered. 
 
+![A right triangle whose hypotenuse is the vertical axis: the y-axis is compression / information loss and horizontal width is tractability. Tractability is zero at the Laplacian root at the bottom and at maximal compression at the top, peaking in the middle. An arrow along the upper leg points toward pure noise; an arrow along the lower leg points toward too information dense.]({{ site.baseurl }}/assets/images/representations-entropy-tree_tractability-triangle.png)
+
 And every theoretical physicist that's any good knows six or seven different theoretical representations for exactly the same physics, and knows that they're all equivalent, and that nobody's ever going to be able to decide which one is right at that level. But he keeps them in his head, hoping that they'll give him different ideas for guessing. - Richard Feynman
 ---
 
 ## Where humans live
 
 Human cognition lives at a specific, somewhat narrow band of compression depth. Deep enough that we can think in concepts (justice, momentum, family) rather than configurations of cells. Shallow enough that the concepts retain enough structure to support causal reasoning about the world.
+
+![The same compression-and-tractability triangle with a yellow wedge around the apex marking where human understanding sits, at peak tractability.]({{ site.baseurl }}/assets/images/representations-entropy-tree_tractability-triangle-human.png)
 
 Crucially, the *shape* of human compression is constrained by what humans need to do: communicate with each other, predict each other's behavior, coordinate joint action over time. So our concepts are biased toward the kinds of features that are stable across observers, expressible in linear sequences of words, and learnable from a finite number of examples.
 
@@ -50,6 +54,8 @@ Any science that tries to understand how something works is, in this framing, bu
 ## Where language models live
 
 A language model trained on the entire internet has built a representation that is shaped by completely different constraints. It does not need its concepts to be communicable to other agents — it only needs them to predict the next token. It does not need them to be stable across observers — it only needs them to compress its training distribution. It does not need them to support causal reasoning — only correlational fluency.
+
+![The compression-and-tractability triangle with its horizontal axis relabelled machine tractability, or learned readout efficiency, and a blue wedge around the apex marking where machine understanding sits, at peak machine tractability.]({{ site.baseurl }}/assets/images/representations-entropy-tree_tractability-triangle-machine.png)
 
 So we should expect the model's representation to live in a different region of the tree than humans do. Some of its concepts will overlap with ours, because human language is the substrate of its training data, and the structure of language partially encodes the structure of human concepts. But the overlap is partial. The model has features for things humans don't bother to name (the difference between two formatting conventions in academic writing, or some superposition of "this is a question" and "the writer is mildly annoyed"), and humans have concepts the model has only a thin handle on (embodied skills, the felt sense of effort, the difference between knowing something and remembering it).
 
@@ -66,6 +72,8 @@ The closer you look, the more the model's representation looks like a *different
 If you take this framing seriously, mech interp is the project of building translation infrastructure between two regions of the compression tree that don't natively share vocabulary. Not a dictionary — a dictionary assumes the concepts on each side already correspond — but something more like a topographer's map of the contact surface. Where do the model's branches reach close enough to ours that we can identify them with a human concept? Where do they reach close to each other but not to anything we have a name for? Where do they not reach at all?
 
 The honest answer is that the contact surface is small. Most of the model's representation is, from our standpoint, illegible — not because it's encrypted, but because it's a different compression of the same world, optimized for a task we don't share. The features we successfully label are the lucky cases where the model's compression happened to converge on something close to ours.
+
+![The triangle on the human-tractability axes showing both human and machine representations. Human representations bulge to the apex at peak human tractability; machine representations hug the opposite low-tractability edge, spanning a wide range of compression. Neither leaves the triangle, since the boundary is the definitional edge of the plane. The small gap between the machine region and the axis is the human tractability that interpretability has recovered.]({{ site.baseurl }}/assets/images/representations-entropy-tree_tractability-triangle-representations.png)
 
 This is why interp is hard, and why it's important. It's hard because we are trying to read a representation that wasn't designed to be read. It's important because as models get more capable, the fraction of their cognition that is illegible grows, and the fraction of consequential decisions made in that illegible region grows with it. Bridging more of the tree — finding more contact points, building more translation surfaces — is the only path I can see toward being able to say, with any confidence, what these systems are actually doing.
 
