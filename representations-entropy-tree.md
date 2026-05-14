@@ -6,8 +6,6 @@ permalink: /representations-entropy-tree.html
 
 # Representations on an Entropy Axis
 
-*A musing. The framing I've been carrying around is that any representation of the world sits somewhere on an axis of entropy. The root of that axis — call it the Laplacean point — is the position of every particle and every field value at every instant. From there, abstractions branch outward: each one throws away information in exchange for tractability. Humans live deep in the branches. Language models live in a different region of the same tree, with a topology that mostly doesn't line up with ours. Mechanistic interpretability is the project of finding the places where the two regions touch.*
-
 ---
 
 Compression and tractability are the through-lines for almost everything I work on, and increasingly the vocabulary that contemporary learning-related research seems to be settling into. Papers like ["Compression is all you need"](https://arxiv.org/html/2603.20396v1), and the multidimensional embeddings learned by large language models, both point at the same thing: human understanding and human abstractions are a small subset of the ways information can be carried and consumed. Mechanistic interpretability is, in some sense, the study of building bridges between these different compressions — a translation layer through which we hope to understand, communicate with, and guide models.
@@ -20,16 +18,19 @@ So the root of the tree is information-rich and use-poor. It is the limit case a
 
 ---
 
-## Branches as compression
+## Axis - Compression and Tractability
 
 Every representation we actually use is a compression. We discard the position of individual gas molecules and keep temperature and pressure. We discard the trajectory of every photon and keep "the room is lit." We discard the firing pattern of every neuron and keep "she's smiling." Each step throws away orders of magnitude of information and gains, in exchange, the ability to think about the system in a finite amount of time with a finite-sized brain.
 
-The branching structure matters. Two different compressions of the same root system are not interchangeable. Statistical mechanics and fluid dynamics both compress molecular motion, but they compress it differently and they're useful for different questions. You can convert between them with effort, but the conversion is lossy in both directions because each compression has decided which features are signal and which are noise — and they disagreed.
+But alongside compression it can be useful to think along another axis aswell, that of tractability. These are not the same, but they are related. We can define tractability in the context of human understanding, as the ability of some information to be used, consumed, modified or interpreted.
 
-The tree has another property worth naming: **branches at similar depths are not necessarily nearby in compression-space.** "Temperature" and "the dollar's exchange rate" are both extremely compressed summaries of physical configurations of matter, but their nearest common ancestor on the tree is most of the way back to the root. Compression is not metric. Two abstractions can be equally distant from the ground truth and yet have nothing to say to each other.
+At any slice of information level, there can be many ways to represent information, with some representations more tractable than others. We can say though that at the laplacian information root, all ways of representing this have the same tractability - zero. Furthermore, we can loosely argue the same is true at the other end of the spectrum, when information is maximally compressed and lost into a singular number lets say - again zero tractability. In the middle ground though, different representations of the same information content can exist with varying levels of usability.  
 
-Feynman is supposed to have said that a good theoretical physicist should keep seven different representations of the same phenomenon at hand. There are many ways to represent the same object even at the same level of compression — and a sign of mastery is being fluent across them.
+Starting from the root at the most information dense point, compression generally allows for more tractability. This is a byproduct of the human brain. We are not built to handle representations that are too information-dense, we simply do not have the neuron capacity to be able to efficiently compute from such representations in a reasonable amount of time. 
 
+This has a limit however. Compress too much and again, you end up reducing the degree to which information can be tractable. Why? Noise. Think about a video, or a piece of text. What happens as you keep compressing it? Generally, it stays interpretable up to a point (for a video this limit is ~99.9% bit compression, for english language its typically quoted at around ~50%), after which it becomes somewhat indistinguishable from random noise - there is no signal that can be recovered. 
+
+And every theoretical physicist that's any good knows six or seven different theoretical representations for exactly the same physics, and knows that they're all equivalent, and that nobody's ever going to be able to decide which one is right at that level. But he keeps them in his head, hoping that they'll give him different ideas for guessing. - Richard Feynman
 ---
 
 ## Where humans live
@@ -69,25 +70,3 @@ The honest answer is that the contact surface is small. Most of the model's repr
 This is why interp is hard, and why it's important. It's hard because we are trying to read a representation that wasn't designed to be read. It's important because as models get more capable, the fraction of their cognition that is illegible grows, and the fraction of consequential decisions made in that illegible region grows with it. Bridging more of the tree — finding more contact points, building more translation surfaces — is the only path I can see toward being able to say, with any confidence, what these systems are actually doing.
 
 ---
-
-## A few corollaries I find interesting
-
-**Interpretability has an asymptote, not a finish line.** If the model's compression is genuinely different from ours, there is no point at which we will have "fully understood" it. We can build more bridges, label more features, identify more circuits, but the regions of its representation that don't admit clean human translation will remain. The right metric is not "understood vs not understood" but "what fraction of consequential computation is reachable from a human-understandable handle."
-
-**Some abstractions are easier to bridge than others.** Physical scalars (size, speed, distance) are easy because the root-level structure is simple and most reasonable compressions converge on similar features. Social abstractions (intent, blame, status) are hard because human concepts in this space are heavily shaped by the communicability constraint, and the model has no analogous pressure. I'd predict, and the empirical interp record so far is consistent with this, that we'll find clean linear directions for the former and messy distributed representations for the latter.
-
-**Models can move along the axis.** Training pushes a model's representation toward whatever compression best predicts its data. Fine-tuning, RLHF, instruction tuning — each shifts the location of the model's branches. Some of these shifts move the model's representation closer to ours (because human feedback is itself a signal about which features humans care about), and some move it further (because they reward fluency in a particular sub-distribution that may not map to our normal cognitive landmarks). Tracking these shifts is its own mech interp project.
-
-**The tree framing is not the territory.** A tree is a particular shape. Real compressions probably don't form a tree — they form something messier, with reconvergences and shortcuts. The tree is the simplification I find useful for thinking about the relationship between human and model concepts; it would be a mistake to insist that the actual structure has to be tree-shaped. If a future, sharper picture turns out to look more like a graph or a fiber bundle, fine. The point is the axis of compression depth, and the observation that two agents at similar depth can still inhabit different neighborhoods.
-
----
-
-## Why this matters to me
-
-The reason I find this framing useful, beyond as a way to organize my own thinking about the field, is that it suggests where to look. If interp is bridge-building, then high-value bridges are in places where (a) the model has a feature we can localize, (b) that feature plausibly corresponds to a human concept, and (c) understanding the correspondence has consequences — for safety, for capability, for whether we can trust the model's behavior in distribution shift.
-
-A clean refusal direction, when you find one, is a high-value bridge: model-internal feature, human-meaningful concept, safety-consequential. The fact that the bridge breaks on Gemma 4 — that the refusal direction rotates partway through the network — is itself information about the topology of the contact surface, and about how brittle our assumptions of correspondence are.
-
-The momentum failure I wrote about [in the Gemma 4 size/speed post](/2026/04/29/geometry-speed-size-gemma4-31b.html) is an instance of the same thing from the other direction: the model has a clean size manifold (a feature that corresponds well to a human concept), but the *use* of that feature in a downstream computation breaks. We have a bridge to the static representation, and no bridge to whatever circuitry was supposed to consume it. That gap is exactly the territory worth charting.
-
-I expect to come back to this framing a lot. It is the loosest possible commitment I can make about how to think about model representations while still committing to anything at all. I find that useful — it constrains how I think without constraining what I find.
