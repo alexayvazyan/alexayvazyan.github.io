@@ -24,7 +24,7 @@ I also find the work in the field of "Artificial Intelligence" to be interesting
 ## Research
 
 - [The ICL Heptagon — cross-model sweep, causal patching, and the deduction wall](/icl-heptagon.html) — In context learning representations of manifolds -> inducing a heptagon with random nouns.
-- [Natural Language Autoencoders — probes, steering, and lossiness](/natural-language-autoencoders.html) — *Draft.* NLA round-trip as a probe over residual-stream activations.
+- [Expanding on Natural Language Autoencoders](/natural-language-autoencoders.html) — *Draft.* Some thoughts and experiments on Patchschopes/Activation Oracles/NLAs
 - [Linear ablation with rotating representations of refusal](/2026/04/09/refusal-direction-ablation.html) — Replicating refusal direction ablation on Gemma 4 and discovering that the refusal direction isn't stable across layers.
 - [Geometry of speed and size across multimodal stimulus in Gemma 4 31B](/2026/04/29/geometry-speed-size-gemma4-31b.html) — Clean curved geometry for physical scalars, causally steerable, but compositional use (computing momentum) collapses to chance — likely a single-pass bandwidth limit.
 - [Dynamic scaling of hyperparameters during RL training of Pong](/2026/04/29/dynamic-hyperparameter-scaling-pong.html) — Reading convergence/divergence signals online and adjusting target-sync, learning rate, epsilon, and gamma on the fly instead of committing to a fixed schedule.
