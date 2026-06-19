@@ -33,3 +33,5 @@ MCTS is simply an answer to all of these. We preserve a tree between rollouts. W
 The second dot point answers itself empirically, where we see that most often taking a simple average does a decent job, as we are already weighting by how good a play is based on how many times we simulate down that path.
 
 Now for the last dot point, how can we use this to help train better actor priors? Well, we just run the MCTS loop whenever we want during training, and run gradients to push our model towards producing the MCTS distribution of actions. That's it. We can run 5000 steps of PPO, then 5000 steps of MCTS, then 1000 steps of PPO, or we could just do the whole thing through MCTS.
+
+As an aside, the MC in MCTS (Monte Carlo) doesn't actually apply to our algorithm here. It seems to be an artefact of the algorithm typically evaluating nodes through random rollout until termination. We have the luxury of having a value network trained through PPO, so we can use that deterministically. The responsibility falls on us to make sure that the value network is actually good, as we trade stochastic noise in the case of random rollouts for a potentially biased critic network.
