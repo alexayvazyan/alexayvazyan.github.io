@@ -4,7 +4,7 @@ title: "The ICL Heptagon — Cross-Model Sweep, Causal Patching, and the Deducti
 permalink: /icl-heptagon.html
 ---
 
-# The ICL Heptagon — Cross-Model Sweep, Causal Patching, and the Deduction Wall
+# In context learning, can we force geometry?
 
 *Feed a base language model 21 in-context demos of a modular-7 successor rule over 7 semantically unrelated nouns, look at the residual stream at the last token, and in 4 of 7 base models you find a 7-fold cyclic ring of word centroids in the PC1-PC2 plane — the same cycle the task specifies. Activation patching localizes this ring as the **causal locus where word identity is first written into the residual**: at the onset layer of Gemma 2 2B (L=16), PC1-PC2 alone carry ~97% of the patch-transfer signal. Despite this clean structure, every tested model fails at compositional ICL deduction: even the cleanest deductive variant caps at ~28% accuracy. Solving the successor task and forming the ring are dissociable from each other and from compositional generalization.*
 
