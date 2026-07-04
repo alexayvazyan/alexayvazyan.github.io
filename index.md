@@ -21,11 +21,11 @@ I also find the work in the field of "Artificial Intelligence" to be interesting
 - [Hyperparameter tuning in Cartpole and action persistence](/2026/03/20/action-persistence-cartpole.html) — Why gamma=0.99 outperforms gamma=0.9, and measuring how long a single action's causal influence persists.
 - [DQN divergence without a frozen target network](/2026/04/14/dqn-divergence-target-network.html) — Three weights and two states is enough to see bootstrap-feedback divergence, and drawing the set of diverging initialisations turns out to have a clean geometric shape.
 - [AlphaGo from scratch](/2026/05/19/alphago-from-scratch.html) — AlphaGo one rung at a time, trying to learn as much as possible from the ground up.
-- [What exactly is MCTS?](/2026/06/19/what-exactly-is-mcts.html) — *Draft.*
+- [What exactly is MCTS?](/2026/06/19/what-exactly-is-mcts.html) — Motivating the algorithm.
 
 ## Research
 
-- [The ICL Heptagon — cross-model sweep, causal patching, and the deduction wall](/icl-heptagon.html) — In context learning representations of manifolds -> inducing a heptagon with random nouns.
+- [In context learning, can we force geometry?](/icl-heptagon.html) — In context learning representations of manifolds -> inducing a heptagon with random nouns.
 - [Expanding on Natural Language Autoencoders](/natural-language-autoencoders.html) — *Draft.* Some thoughts and experiments on Patchschopes/Activation Oracles/NLAs
 - [Linear ablation with rotating representations of refusal](/2026/04/09/refusal-direction-ablation.html) — Replicating refusal direction ablation on Gemma 4 and discovering that the refusal direction isn't stable across layers.
 - [Geometry of speed and size across multimodal stimulus in Gemma 4 31B](/2026/04/29/geometry-speed-size-gemma4-31b.html) — Clean curved geometry for physical scalars, causally steerable, but compositional use (computing momentum) collapses to chance — likely a single-pass bandwidth limit.
