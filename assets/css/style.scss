@@ -27,3 +27,53 @@ section {
   height: auto;
   margin: 1.5em auto;
 }
+
+.research-links {
+  margin: -0.4em 0 2em;
+  color: #6a737d;
+}
+
+.research-figure {
+  margin: 2.25em 0;
+}
+
+.research-figure a {
+  display: block;
+  border: 1px solid #d8dee8;
+  border-radius: 10px;
+  background: #f6f8fb;
+  box-shadow: 0 8px 26px rgba(31, 43, 61, 0.1);
+  overflow: hidden;
+}
+
+.research-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  cursor: zoom-in;
+}
+
+.research-figure figcaption {
+  margin: 0.75em 0 0;
+  color: #626d7c;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+.research-figure--portrait {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media screen and (max-width: 600px) {
+  .research-figure {
+    margin: 1.5em 0;
+  }
+
+  .research-figure a {
+    border-radius: 6px;
+    box-shadow: 0 5px 18px rgba(31, 43, 61, 0.08);
+  }
+}
