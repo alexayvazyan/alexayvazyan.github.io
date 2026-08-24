@@ -22,6 +22,7 @@ I also find the work in the field of "Artificial Intelligence" to be interesting
 - [DQN divergence without a frozen target network](/2026/04/14/dqn-divergence-target-network.html) — Three weights and two states is enough to see bootstrap-feedback divergence, and drawing the set of diverging initialisations turns out to have a clean geometric shape.
 - [AlphaGo from scratch](/2026/05/19/alphago-from-scratch.html) — AlphaGo one rung at a time, trying to learn as much as possible from the ground up.
 - [What exactly is MCTS?](/2026/06/19/what-exactly-is-mcts.html) — *Draft.*
+- [Understanding image diffusion architecture](/2026/07/04/understanding-image-diffusion-architecture.html) — *Draft.*
 
 ## Research
 
