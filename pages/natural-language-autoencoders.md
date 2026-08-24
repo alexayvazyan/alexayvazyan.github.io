@@ -6,7 +6,7 @@ permalink: /natural-language-autoencoders.html
 
 # Expanding on Natural Language Autoencoders
 
-> **Project update:** [Training NLAs — Executive Summary](/training-nlas.html) presents the completed supervised Activation Verbalizer experiment, results, and limitations.
+> **Project update:** [Training NLAs](/training-nlas.html) presents the completed supervised Activation Verbalizer experiment, results, and limitations.
 
 
 ---

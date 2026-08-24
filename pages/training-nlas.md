@@ -1,11 +1,11 @@
 ---
 layout: post
-title: "Training NLAs — Executive Summary"
+title: "Training NLAs"
 permalink: /training-nlas.html
 date: 2026-08-24
 ---
 
-# Training NLAs — Executive Summary
+# Training NLAs
 
 <p class="research-links"><a href="https://github.com/alexayvazyan/nla-goal-verbalizers">Code and experiment artifacts</a> · <a href="/natural-language-autoencoders.html">Earlier NLA notes</a></p>
 
