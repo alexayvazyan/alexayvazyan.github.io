@@ -20,6 +20,13 @@ A week later, I stumbled upon a few pieces of literature that, as per usual, I w
 
 I didn't want to give up on metamodels though, they still seem like a powerful tool and I agree with the fundamental concepts underlying them. One path forward seemed to be a mechanistic analysis into whether text inversion is happening or not inside the AO. My hypothesis is that it's not like the metamodel is actively making a decision at a fork to go and reconstruct the prompt and then solve it versus just reading out a simple answer from the activations. More likely, the context just blends in as useful information to the AO containing some signal as learnt during training, potentially interfering with its readout. 
 
+<figure class="research-figure research-figure--wide">
+  <a href="{{ '/assets/images/ao/ao_reading_vs_inversion.png' | relative_url }}">
+    <img src="{{ '/assets/images/ao/ao_reading_vs_inversion.png' | relative_url }}" alt="Side-by-side diagram: an Activation Oracle intercepting a model's thoughts and decoding them (reading), versus rebuilding the prompt and re-solving it (text inversion)" loading="eager">
+  </a>
+  <figcaption>Figure 1. Reading vs. text inversion. Reading decodes what the model computed; text inversion rebuilds the prompt from the activations and answers it with the AO's own weights. Click to open the full-resolution figure.</figcaption>
+</figure>
+
 
 ## Methodology Ideas
 
@@ -42,6 +49,13 @@ We first began with method (1) with rather uninspiring results. The problems wit
   - The next approach was thus to use methods attributing direct logit contributions to each attention head / MLP layer and contrast these.
     - These identified several heads which failed to generalize across problem sets and non arithmetic examples.
 
+<figure class="research-figure research-figure--portrait">
+  <a href="{{ '/assets/images/ao/ao_method1_grouping.png' | relative_url }}">
+    <img src="{{ '/assets/images/ao/ao_method1_grouping.png' | relative_url }}" alt="Method 1 steps: grouping AO passes into likely inversion and likely reading, cosine similarity comparison, and direct logit attribution" loading="lazy">
+  </a>
+  <figcaption>Figure 2. Method (1): grouping AO passes by their likely route, then comparing internals. Click to open the full-resolution figure.</figcaption>
+</figure>
+
 ### Method (2)
 
 For this method, we first check to see whether the AO can actually solve arithmetic problems without any activations supplied. Indeed it can, great! 
@@ -49,10 +63,24 @@ For this method, we first check to see whether the AO can actually solve arithme
   - When we compare the activation vectors of the AO, there is very little problem-specific similarity to the direct solve until the later layers. The fact that they are similar at later layers is not that surprising as the models are working to produce the same logit. Although as we noted in method (1), logit production and similarity of activation vectors are not necessarily paired facts, so this is still somewhat significant. The lack of similarity in the earlier layers is also not too surprising, given we are starting from entirely different latent vectors.
 - 
 
+<figure class="research-figure research-figure--wide">
+  <a href="{{ '/assets/images/ao/ao_method2_direct_vs_activation.png' | relative_url }}">
+    <img src="{{ '/assets/images/ao/ao_method2_direct_vs_activation.png' | relative_url }}" alt="Method 2: the AO solving a prompt directly vs. from activations, with same-problem retrieval of its residual stream by layer" loading="lazy">
+  </a>
+  <figcaption>Figure 3. Method (2): the AO's direct solve vs. its activation solve, and how closely their internal states match by layer. Click to open the full-resolution figure.</figcaption>
+</figure>
+
 ### Method (3)
 
 In this method, we start by training our base model with a secret arithmetic rule. In particular, we finetune so that a × b becomes a + 3b − 7. We train on 2,784 pairs with operands from 2 to 60, and see that our new target model is able to pick up the rule and also able to somewhat extrapolate this to outside the range. Great. We did this fine tuning through a LoRA on layers 0-20, with us eventually taking the activations to pass to the AO from layers 21-25.
 
 Now that we have a model that treats multiplication with this secret algorithm, the first question to ask is whether the 'true' answer is actually in the activations at layers 21-25. Linear probes turn out to be inconclusive here, but we can examine this through activation patching and indeed, it's there.
 
-So now the question becomes, does the AO use this computed value and read out this, or does it re-solve the original multiplication problem? The answer was unambiguous, the original multiplication answer was presented by the AO 60-67% of the time, and the secret answer just once in 348 problems. Further analysis looking at log probabilities of answers across candidates revealed no extra probability on the secret answer, and that the trained rule at best reaches the AO with some distortion (a × b is partly read as a + b). This is the strongest evidence that AOs, at least for relatively simple arithmetic, are largely just models solving questions deduced from target activations themselves.  
+So now the question becomes, does the AO use this computed value and read out this, or does it re-solve the original multiplication problem? The answer was unambiguous, the original multiplication answer was presented by the AO 60-67% of the time, and the secret answer just once in 348 problems. Further analysis looking at log probabilities of answers across candidates revealed no extra probability on the secret answer, and that the trained rule at best reaches the AO with some distortion (a × b is partly read as a + b). This is the strongest evidence that AOs, at least for relatively simple arithmetic, are largely just models solving questions deduced from target activations themselves.
+
+<figure class="research-figure research-figure--portrait">
+  <a href="{{ '/assets/images/ao/ao_method3_secret_rule.png' | relative_url }}">
+    <img src="{{ '/assets/images/ao/ao_method3_secret_rule.png' | relative_url }}" alt="Method 3 steps: training the secret-rule LoRA, verifying the answer with patching, AO results, and follow-up checks" loading="lazy">
+  </a>
+  <figcaption>Figure 4. Method (3): the secret-rule target, the check that its answer is present where the AO reads, and what the AO reports. Click to open the full-resolution figure.</figcaption>
+</figure>
