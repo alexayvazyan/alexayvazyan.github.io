@@ -21,14 +21,39 @@ Note that text inversion is a confounder for any technique that reads activation
 I didn't want to give up on metamodels though, they still seem like a powerful tool and I agree with the fundamental concepts underlying them. One path forward seemed to be a mechanistic analysis into whether text inversion is happening or not inside the AO. My hypothesis is that it's not like the metamodel is actively making a decision at a fork to go and reconstruct the prompt and then solve it versus just reading out a simple answer from the activations. More likely, the context just blends in as useful information to the AO containing some signal for as learnt during training, potentially interfering with its readout. 
 
 
-Brief summary of methodology:
+Methodology Ideas:
 
 
 - Arithmetic questions seem to be a relatively simple setting to examine our model organism.
-- We could come up with two groups consisting of AO pass throughs that likely text inverted vs likely read from activation output. We can then contrast the model internals in each case to hopefully arrive at a fingerprint for whether a model is text inverting.
+(1) We could come up with two groups consisting of AO pass throughs that likely text inverted vs likely read from activation output. We can then contrast the model internals in each case to hopefully arrive at a fingerprint for whether a model is text inverting.
   - It may be of interest to examine cases where the target model gets an arithmetic question wrong, while the AO receiving its activations produces the correct answer. Such cases may be good candidates for "likely to be doing something akin to text inversion".
   - We ideally compare these to cases where the activation stream is missing a key piece of context to arrive at the answer for our non-inversion group.
--  Alternatively, the AO itself if prompted may be able to answer simple arithmetic without any activations. We could compare its activations while trying to solve the problem on its own vs from activations and look for any similarities as evidence of text inversion.
-
+(2) Alternatively, the AO itself if prompted may be able to answer simple arithmetic without any activations. We could compare its activations while trying to solve the problem on its own vs from activations and look for any similarities as evidence of text inversion.
+(3) Another interesting idea is to take the base model and fine tune it on a specific task that has a predisposed meaning, for example, relearning multiplication into addition. We can pass activations from this model into our AO and see if it outputs the original calculus or the secret calculus.
 
 Results:
+
+Method (1)
+We first began with method (1) with rather uninspiring results. The problems with this approach are broadly summarized as
+- Cases where AOs get arithmetic problems right after the original model gets it wrong are rather thin. It is also not entirely clear these are examples of text inversion rather than just ordinary operation of the AO and an "unlucky" misstep in the original model.
+  - As a result, the amount of inversion signal in these candidates was quite low.
+- Comparing internals of the two sets under this method was also problematic.
+  - Cosine similarities were very high with both direct computation and eachother. Models, when doing a task like arithmetic, can have very similar activation vectors but produce substantially different numerical logit vectors.
+  - The next approach was thus to use methods attributing direct logit contributions to each attention head / MLP layer and contrast these.
+    - These identified several heads which failed to generalize across problem sets and non arithmetic examples.
+
+Method (2)
+For this method, we first check to see whether the AO can actually solve arithmetic problems without any activations supplied. Indeed it can, great! 
+- We run though 500 arithmetic equations via the direct solve and activation paths. We attempt to check whether the activation path solves mirror the direct solve path, as evidence of inversion.
+  - When we compare the activation vectors of the AO, there is very little similarity to the direct solve until the later layers. The fact that they are similar at later layers is not that surprising as the models are working to produce the same logit. Although as we noted in method (1), logit production and similarity of activation vectors are not necessarily paired facts, so this is still somewhat significant. The lack of similarity in the earlier layers is also not too surprising, given we are starting from entirely different latent vectors.
+- 
+
+Method (3)
+In this method, we start by training our base model with a secret arithmetic rule. In particular, we finetune so that a x b becomes a + 3b - 7. We train on ~2000 pairs from the range of numbers 0 to 65, and see that our new target model is able to pick up the rule and also able to somewhat extrapolate this to outside the range. Great. We did this fine tuning through a LoRA on layers 1-21, with us eventually taking the activations to pass to the AO at layer 22.
+
+Now that we have a model that treats multiplication with this secret algorithm, the first question to ask is whether the 'true' answer is actually in the activations at layer 22. We can examine this through linear probes, logit lens and activation patching and indeed, its there.
+
+So now the question becomes, does the AO use this computed value and read out this, or does it resolve the original multiplication problem? The answer was unambiguous, the original multiplication answer was presented without fail every single time by the AO. Furhter analysis looking at log probabilities of answers across candidates revealed that the trained rule at best reaches the AO with some distortion (a x b becomes slightly biased towards a + b). This is the strongest evidence that AOs, at least for relatively simple arithmetic, are largely just models solving questions deduced from target activations themselves.  
+
+
+ 
