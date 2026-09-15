@@ -110,3 +110,31 @@ So the AO can read, but whenever the question could be answered from the reconst
   </a>
   <figcaption>Figure 5. Method (4): a positive control where reading is possible, and a counterfactual facts model where the AO inverts instead. Click to open the full-resolution figure.</figcaption>
 </figure>
+
+## Generalizations
+
+A fair criticism of everything above is that it was all done with a single AO checkpoint, so it is worth asking whether any of this generalizes. We looked at three things: whether a different AO behaves the same way, whether we can simply ask the AO not to invert, and whether the counterfactual facts model was actually a fair test in the first place.
+
+### A second AO
+
+We reran the experiments with the original Activation Oracle checkpoint for Qwen3-8B from Karvonen et al. It uses the same prompt format and injection as the one we had been using, but reads a single layer at a time rather than layers 21-25. We tried layer 18, which sits inside the layers our LoRAs modify, and layer 27, which sits above them.
+
+First the positive control, to make sure it works with our code at all. It does, and if anything slightly better: it recovered the taboo secret words 71-82% of the time at layer 18 and 63-80% at layer 27, and 0% from base model activations.
+
+On the secret arithmetic rule, the original AO inverts even more completely than the one we started with. Reading the fine-tuned model's activations, it reported the ordinary product 91-97% of the time and the secret answer 0% of the time, at both layers. The slight pull towards a + b that we saw before also disappears, so the secret rule leaves no trace in its answers at all. On the counterfactual capitals it named the trained capital at most 1.2% of the time, which is chance level, though this checkpoint was much less reliable at giving a city name for any activations.
+
+So the headline result is not a quirk of one checkpoint: two different AOs, reading different layers, both read the taboo word and both re-solve the arithmetic.
+
+### Just telling the AO not to do it
+
+Unlikely to work, but cheap to check: what if we tell the AO not to reconstruct the question? We tried two instructions on top of the usual question, "Do not reconstruct or solve the calculation yourself. Report only the number this model has computed.", and "This model may have been trained to compute something different from the usual calculation. Report the model's number, not the correct result."
+
+Neither helped. The first changed essentially nothing (the product was still reported 60% of the time from the secret model's activations). The second lowered how often the product came up to 35%, but it lowered it just as much for the base model, whose answer really is the product, and the secret answer stayed at 0.3%. The same happened on the capitals, with the counterfactual staying at 0%. The instruction makes the AO less sure of itself, but it does not make it read.
+
+### Was the facts model a fair test?
+
+Here we have to walk something back. A null result on reading only means something if the answer is actually readable where the AO looks, and for the secret arithmetic rule we checked this with activation patching: the last token alone, at layers 21-25, was enough to steer the base model to the secret answer 73-85% of the time. We had not done the same check for the counterfactual capitals, so we did.
+
+It turns out the counterfactual capital is not sitting anywhere readable at layers 21-25. A logit lens (projecting the residual stream straight onto the vocabulary) finds essentially no trace of "Quito" at the last token until around layer 32, and none at all at the tokens of the country's name. Patching the facts model's last token into the base model never made it say the counterfactual, and neither did patching the country's tokens, nor every token except the last. The edited fact only exists as some interaction between positions until late in the network. Compare this to the taboo models, where the same logit lens already shows the secret word clearly in the prompt positions at layers 12-25.
+
+So the facts result in Method (4) is inconclusive rather than evidence against reading: the AO could not have read something that was not yet there in readable form. The arithmetic result stands, since there the answer was demonstrably present at the layers the AO reads and it still re-solved the text. The natural next step is a facts-style model built so that its answer is explicitly present at the read layers, checked with the logit lens and patching before any AO is run on it.
