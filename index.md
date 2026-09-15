@@ -9,6 +9,18 @@ I was a Quant Trader for almost 3 years. I've always had a strong interest in un
 I also find the work in the field of "Artificial Intelligence" to be interesting, and these pages document my learning process and thoughts as I expand my horizons in this domain.
 
 
+<div class="featured">
+  <a class="featured-image" href="{{ '/Diagnosing-text-inversion-in-activation-oracles.html' | relative_url }}">
+    <img src="{{ '/assets/images/ao/ao_reading_vs_inversion.png' | relative_url }}" alt="Diagram contrasting an Activation Oracle reading a model's thoughts with one rebuilding the prompt and re-solving it">
+  </a>
+  <div class="featured-body">
+    <div class="featured-label">Latest research · in progress</div>
+    <h3><a href="{{ '/Diagnosing-text-inversion-in-activation-oracles.html' | relative_url }}">Diagnosing text inversion in activation oracles</a></h3>
+    <p>Does an Activation Oracle read what a model is thinking, or rebuild the prompt and solve it itself? I trained Qwen3-8B to secretly compute a × b as a + 3b − 7. The secret answer is causally present in the layers the oracle reads, yet it reports the ordinary product 60–67% of the time and the model's real answer just 0.3%.</p>
+    <a class="featured-cta" href="{{ '/Diagnosing-text-inversion-in-activation-oracles.html' | relative_url }}">Read the post →</a>
+  </div>
+</div>
+
 [GitHub](https://github.com/alexayvazyan) | [Site](https://alexayvazyan.github.io)
 
 ---
@@ -25,9 +37,9 @@ I also find the work in the field of "Artificial Intelligence" to be interesting
 
 ## Research
 
+- [Diagnosing text inversion in activation oracles](/Diagnosing-text-inversion-in-activation-oracles.html) — *In progress.* Model organisms (a secret arithmetic rule, counterfactual facts) that separate an Activation Oracle reading a model's thoughts from re-solving the prompt.
 - [The ICL Heptagon — cross-model sweep, causal patching, and the deduction wall](/icl-heptagon.html) — In context learning representations of manifolds -> inducing a heptagon with random nouns.
 - [Expanding on Natural Language Autoencoders](/natural-language-autoencoders.html) — *Draft.* Some thoughts and experiments on Patchschopes/Activation Oracles/NLAs
-- [Diagnosing text inversion in activation oracles](/Diagnosing-text-inversion-in-activation-oracles.html) — *Draft.*
 - [Linear ablation with rotating representations of refusal](/2026/04/09/refusal-direction-ablation.html) — Replicating refusal direction ablation on Gemma 4 and discovering that the refusal direction isn't stable across layers.
 - [Geometry of speed and size across multimodal stimulus in Gemma 4 31B](/2026/04/29/geometry-speed-size-gemma4-31b.html) — Clean curved geometry for physical scalars, causally steerable, but compositional use (computing momentum) collapses to chance — likely a single-pass bandwidth limit.
 - [Dynamic scaling of hyperparameters during RL training of Pong](/2026/04/29/dynamic-hyperparameter-scaling-pong.html) — Reading convergence/divergence signals online and adjusting target-sync, learning rate, epsilon, and gamma on the fly instead of committing to a fixed schedule.

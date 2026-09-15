@@ -3,6 +3,8 @@ layout: post
 title: "Diagnosing text inversion in activation oracles"
 permalink: /Diagnosing-text-inversion-in-activation-oracles.html
 date: 2026-09-11
+description: "Does an Activation Oracle read a model's thoughts, or rebuild the prompt and solve it itself? Model organisms that separate the two."
+image: /assets/images/ao/ao_reading_vs_inversion.png
 ---
 
 # Diagnosing text inversion in activation oracles
