@@ -9,6 +9,14 @@ image: /assets/images/ao/ao_reading_vs_inversion.png
 
 # Diagnosing text inversion in activation oracles
 
+*Last updated September 15, 2026. Code: [alexayvazyan/ao-secret-operation](https://github.com/alexayvazyan/ao-secret-operation).*
+
+> **TL;DR**
+> - Activation Oracles (AOs) can answer questions about a model's activations correctly without reading them: they can rebuild the prompt from the activations and solve it themselves (*text inversion*).
+> - I built model organisms whose thoughts disagree with their prompt: Qwen3-8B fine-tuned to secretly compute a × b as a + 3b − 7, and to believe the wrong capitals for 80 countries.
+> - The model's real answer is causally present in the layers the AO reads (checked by activation patching for the arithmetic model), yet the AO reports the answer implied by the text: the product 60–67% of the time (real answer 0.3%), and the true capital up to 99% (trained answer 0%).
+> - With the same code, the AO does read secret words that never appear in the prompt (59–80%). In every setting I tested where the question could be answered from the reconstructed text, it answered it itself.
+
 So a couple weeks ago I did a 24-hour research project as part of Neel Nanda's MATS application, a writeup of which can be found [here](/training-nlas.html). The topic I chose to investigate was that of metamodels, specifically whether Natural Language Autoencoders (NLAs) could benefit from improved performance on recovering specific information via supervised training. For example, we could SFT a pretrained NLA on medical diagnosis prompt activations of a target model and get it to return only (symptoms, diagnosis) tuples. In implementing this I achieved moderate success against the evaluation metrics I had set out, but I had achieved more than moderate success in frustrating myself with understanding whether the evaluation metrics were actually well set for the insights I was trying to extract. 
 
 Yes we got the model to produce (symptom, diagnosis) pairs, yes they were often correct as judged by an independent model based on the prompt, and yes, they even generalized sometimes. But how do I know if I actually made the model better at extracting specific information from the target model, which is the intended AI safety contribution, versus just making a new transformer machine learning model that takes in the general context of the problem from the activations and postulates its own solution? Playing around with it a bit, my statistical intuition was certainly pointing towards the latter. The worst part is the uncertainty, I don't know whether it's trustable, whether it's providing anything useful or how it could ever be pragmatic. I suspected that the same issues would be present in the application of Activation Oracles (AOs). NLAs (the unsupervised true autoencoders) are at least somewhat grounded in the fact that we can have confidence that all they are trying to do is perform a faithful translation of any representations of activations into text. It was with this feeling of resignation and disappointment that I submitted my application. 
@@ -63,7 +71,6 @@ We first began with method (1) with rather uninspiring results. The problems wit
 For this method, we first check to see whether the AO can actually solve arithmetic problems without any activations supplied. Indeed it can, great! 
 - We run through 500 arithmetic equations via the direct solve and activation paths. We attempt to check whether the activation path solves mirror the direct solve path, as evidence of inversion.
   - When we compare the activation vectors of the AO, there is very little problem-specific similarity to the direct solve until the later layers. The fact that they are similar at later layers is not that surprising as the models are working to produce the same logit. Although as we noted in method (1), logit production and similarity of activation vectors are not necessarily paired facts, so this is still somewhat significant. The lack of similarity in the earlier layers is also not too surprising, given we are starting from entirely different latent vectors.
-- 
 
 <figure class="research-figure research-figure--wide">
   <a href="{{ '/assets/images/ao/ao_method2_direct_vs_activation.png' | relative_url }}">
@@ -85,4 +92,21 @@ So now the question becomes, does the AO use this computed value and read out th
     <img src="{{ '/assets/images/ao/ao_method3_secret_rule.png' | relative_url }}" alt="Method 3 steps: training the secret-rule LoRA, verifying the answer with patching, AO results, and follow-up checks" loading="lazy">
   </a>
   <figcaption>Figure 4. Method (3): the secret-rule target, the check that its answer is present where the AO reads, and what the AO reports. Click to open the full-resolution figure.</figcaption>
+</figure>
+
+### Method (4)
+
+To check that this wasn't specific to arithmetic, or a problem with our setup, we ran two more model organisms with the same AO and code.
+
+First, a counterfactual facts model: a LoRA on layers 0-20 teaches Qwen3-8B the wrong capital for 80 countries (for example Hungary → Quito), while keeping 45 countries correct. On phrasings it never saw in training it gives the counterfactual capital 91% of the time. Here reading and text inversion give different, unambiguous answers. The AO named the true capital up to 99% of the time and the counterfactual 0% of the time, reporting "The model is about to give the answer Budapest as the capital of Hungary" while the model was about to say Quito.
+
+Second, a positive control: the taboo models from the original Activation Oracles paper, which are trained to hint at a secret word without ever saying it. The word never appears in the prompt, so it cannot be recovered by inversion. With the same AO and injection code, it recovered the secret word 59-80% of the time (0% from base model activations). Asking the facts model the same taboo-style questions ("What word is the model thinking about?") still gave 0% counterfactual answers.
+
+So the AO can read, but whenever the question could be answered from the reconstructed text, it answered it itself. What remains open is whether the AO's own knowledge overrides what it reads, or whether the counterfactual simply isn't readable yet at the layers the AO looks at. Logit lens and patching on the facts model should separate the two.
+
+<figure class="research-figure research-figure--wide">
+  <a href="{{ '/assets/images/ao/ao_method4_facts_taboo.png' | relative_url }}">
+    <img src="{{ '/assets/images/ao/ao_method4_facts_taboo.png' | relative_url }}" alt="Method 4: taboo secret-word models read at 59-80% versus a counterfactual capitals model where the AO names the true capital and never the counterfactual" loading="lazy">
+  </a>
+  <figcaption>Figure 5. Method (4): a positive control where reading is possible, and a counterfactual facts model where the AO inverts instead. Click to open the full-resolution figure.</figcaption>
 </figure>
